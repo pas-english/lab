@@ -7,20 +7,17 @@
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; }
         .classroom { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; box-sizing: border-box; }
-        .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.8; }
         #mediaContainer { width: 100%; margin-bottom: 15px; border-radius: 15px; overflow: hidden; display: none; }
         #mediaContainer img { width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; display: block; }
         .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 19px; color: #2d3748; min-height: 60px; white-space: pre-wrap; }
-        .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; flex-wrap: wrap; }
-        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; margin-bottom: 10px; }
         .btn { padding: 18px; font-size: 18px; margin: 8px 0; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; width: 100%; transition: 0.3s; }
         #startBtn { background: #e53e3e; color: white; }
         #stopBtn { background: #4a5568; color: white; }
         #uploadBtn { background: #38a169; color: white; }
-        .status { margin-top: 10px; font-weight: bold; color: #2d3748; }
+        .status { margin-top: 10px; font-weight: bold; color: #2d3748; text-align: center; }
         #playerContainer { background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px; display: none; }
-        .btn:active { opacity: 0.7; transform: scale(0.98); }
-        .btn:disabled { background: #cbd5e0 !important; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -29,16 +26,16 @@
     <h1 id="lessonTitle">Jackie's Reading Lab</h1>
     <div id="mediaContainer"></div>
     <div class="input-group">
-        <select id="className" style="margin-bottom:10px;"><option value="General">-- 班級 --</option><option value="1A">1A</option><option value="G7">G7</option><option value="G8">G8</option></select>
-        <input type="text" id="studentName" placeholder="學生姓名">
+        <select id="className"><option value="General">-- 選擇班級 --</option><option value="1A">1A</option><option value="G7">G7</option><option value="G8">G8</option></select>
+        <input type="text" id="studentName" placeholder="輸入學生姓名">
     </div>
-    <div class="reading-text" id="lessonText">教材載入中...</div>
-    <audio id="teacherAudio" preload="auto" crossorigin="anonymous"></audio>
+    <div class="reading-text" id="lessonText">載入教材中...</div>
+    <audio id="teacherAudio" preload="auto"></audio>
     <button id="startBtn" class="btn">🔴 Start Reading</button>
     <button id="stopBtn" class="btn" disabled>⏹️ Stop</button>
     <div id="status" class="status">Ready</div>
-    <div id="playerContainer"><p style="margin:10px 0; font-weight:bold;">🎧 試聽錄音：</p><audio id="audioPlayer" controls style="width:100%;"></audio></div>
-    <button id="uploadBtn" class="btn" style="display:none;">📤 Send to Jackie</button>
+    <div id="playerContainer"><p style="margin:0 0 10px 0; font-weight:bold;">🎧 試聽錄音：</p><audio id="audioPlayer" controls style="width: 100%;"></audio></div>
+    <button id="uploadBtn" class="btn" style="display: none;">📤 Send to Jackie</button>
 </div>
 
 <script>
@@ -53,7 +50,7 @@
         
         const container = document.getElementById('mediaContainer');
         if (data.media_url) {
-            container.innerHTML = `<img src="${data.media_url}" crossorigin="anonymous" alt="Image">`;
+            container.innerHTML = `<img src="${data.media_url}" alt="教材圖片">`;
             container.style.display = 'block';
         }
     }
@@ -77,7 +74,6 @@
             const teacherSource = audioCtx.createMediaElementSource(teacherAudio);
             teacherSource.connect(dest);
             teacherSource.connect(audioCtx.destination);
-            
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
