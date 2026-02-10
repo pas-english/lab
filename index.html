@@ -9,15 +9,15 @@
         .classroom { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; box-sizing: border-box; }
         .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.8; }
         
-        /* 繪本圖片顯示區 */
+        /* 繪本/圖片顯示區 */
         #mediaContainer { width: 100%; margin-bottom: 15px; border-radius: 15px; overflow: hidden; display: none; }
-        #mediaContainer img { width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; display: block; }
+        #mediaContainer img { width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         
-        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 19px; color: #2d3748; min-height: 80px; height: auto; word-wrap: break-word; }
+        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 19px; color: #2d3748; min-height: 60px; height: auto; word-wrap: break-word; }
         .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; flex-wrap: wrap; }
         .input-item { flex: 1; min-width: 140px; }
         input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; }
-        .btn { padding: 18px; font-size: 18px; margin: 8px 0; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; width: 100%; transition: 0.2s; }
+        .btn { padding: 18px; font-size: 18px; margin: 8px 0; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; width: 100%; transition: 0.3s; }
         #startBtn { background: #e53e3e; color: white; }
         #stopBtn { background: #4a5568; color: white; }
         #uploadBtn { background: #38a169; color: white; }
@@ -28,7 +28,7 @@
 <body>
 
 <div class="classroom">
-    <h1 id="lessonTitle" style="margin:0; font-size: 26px;">Loading...</h1>
+    <h1 id="lessonTitle" style="margin:0; font-size: 26px;">載入教材中...</h1>
     <p style="color: #718096; margin: 5px 0 20px 0; font-weight: bold;">Jackie's English Reading Lab</p>
 
     <div class="how-to-play">
@@ -50,7 +50,7 @@
         </div>
     </div>
 
-    <div class="reading-text" id="lessonText">正在同步雲端教材...</div>
+    <div class="reading-text" id="lessonText">正在同步雲端資料...</div>
 
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous"></audio>
 
@@ -68,12 +68,12 @@
 </div>
 
 <script>
-    // 🌟 這裡已經填入您的大腦網址
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwULwx5HJzU0anAPGaxYSwDLYUPD4W0IyfXteVi8uSKtsoNuAdu9A-AeMZYcrJp81z0lg/exec"; 
+    // 🌟 這裡請貼上您最新部署得到的 GAS 網址
+    const GAS_URL = "您的_GAS_網頁應用程式網址"; 
 
     let recorder, chunks = [], activeStream;
 
-    // 從試算表同步教材
+    // 1. 從試算表同步教材
     async function loadLesson() {
         try {
             const res = await fetch(GAS_URL);
@@ -83,7 +83,6 @@
             document.getElementById('lessonText').innerText = data.text || "目前沒有課文內容";
             document.getElementById('teacherAudio').src = data.audio;
             
-            // 判斷是否要顯示繪本圖片
             const container = document.getElementById('mediaContainer');
             if (data.media_type === "image" && data.media_url) {
                 container.innerHTML = `<img src="${data.media_url}" alt="Picture Book">`;
@@ -92,31 +91,32 @@
                 container.style.display = 'none';
             }
         } catch (e) {
-            document.getElementById('lessonText').innerText = "無法讀取教材，請確認試算表共用權限與 GAS 部署。";
+            document.getElementById('lessonText').innerText = "無法讀取教材，請檢查 GAS 部署權限。";
         }
     }
     loadLesson();
 
-    // 錄音功能核心代碼
+    // 2. 錄音邏輯
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const uploadBtn = document.getElementById('uploadBtn');
     const teacherAudio = document.getElementById('teacherAudio');
     const audioPlayer = document.getElementById('audioPlayer');
     const status = document.getElementById('status');
-    const studentNameInput = document.getElementById('studentName');
 
     startBtn.onclick = async () => {
-        if (!studentNameInput.value.trim()) { alert("請輸入姓名！"); return; }
+        if (!document.getElementById('studentName').value.trim()) { alert("請輸入姓名！"); return; }
+        
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             activeStream = stream;
             
-            // 混合音軌
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const dest = audioCtx.createMediaStreamDestination();
+            
             const micSource = audioCtx.createMediaStreamSource(stream);
             micSource.connect(dest);
+            
             const teacherSource = audioCtx.createMediaElementSource(teacherAudio);
             teacherSource.connect(dest);
             teacherSource.connect(audioCtx.destination);
@@ -137,7 +137,7 @@
             recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
             status.innerText = "🔴 正在錄音中...";
-        } catch (err) { alert("麥克風開啟失敗！"); }
+        } catch (err) { alert("麥克風存取失敗，請確認是否開啟權限。"); }
     };
 
     stopBtn.onclick = () => {
@@ -160,15 +160,14 @@
                     body: JSON.stringify({
                         audio: base64Data,
                         className: document.getElementById('className').value,
-                        name: studentNameInput.value.trim()
+                        name: document.getElementById('studentName').value
                     })
                 });
-                status.innerText = "✅ 上傳成功！Jackie 老師收到了。";
+                status.innerText = "✅ 上傳成功！";
                 uploadBtn.style.display = 'none';
-            } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
+            } catch (e) { status.innerText = "❌ 傳送失敗"; uploadBtn.disabled = false; }
         };
     };
 </script>
-
 </body>
 </html>
