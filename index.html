@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jackie's Reading Lab</title>
+    <style>
+        body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .classroom { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 650px; width: 100%; text-align: center; }
+        .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; }
+        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 25px; border-radius: 15px; margin: 20px 0; text-align: left; line-height: 1.8; font-size: 18px; color: #2d3748; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #4a5568; }
+        input[type="text"] { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #edf2f7; box-sizing: border-box; font-size: 16px; }
+        .btn { padding: 18px; font-size: 18px; margin: 10px 0; cursor: pointer; border-radius: 15px; border: none; font-weight: bold; width: 100%; transition: 0.2s; }
+        #startBtn { background: #e53e3e; color: white; }
+        #stopBtn { background: #4a5568; color: white; }
+        #uploadBtn { background: #38a169; color: white; }
+        .status-badge { margin-top: 15px; padding: 10px; border-radius: 10px; font-weight: bold; background: #edf2f7; }
+        audio { width: 100%; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="classroom">
+    <h1 style="margin:0;">🎙️ Echoing Practice</h1>
+    <p id="displayClass" style="color: #718096; margin-top: 5px; font-weight: bold;">Loading Class...</p>
+
+    <div class="how-to-play">
+        <h3>📖 如何操作？</h3>
+        1. 輸入姓名後按 <b>Start</b> 開始。<br>
+        2. 聽老師朗讀，並在停頓處跟讀錄音。<br>
+        3. 完成後按 <b>Stop</b> 停止，最後按 <b>Send</b> 上傳。
+    </div>
+
+    <div class="input-group">
+        <label>👤 Student Name (學生姓名):</label>
+        <input type="text" id="studentName" placeholder="請輸入姓名">
+    </div>
+
+    <div class="reading-text">
+        The next day was very wet. It rained all day and the children could not go to see 
+        the Psammead. They stayed at home and wrote letters to their mother. 
+        But none of them told her about the Psammead. And the day after that, 
+        their Uncle Richard came and took them out, so they didn’t see the Psammead 
+        for two days. But Anthea spent a lot of time thinking about what to wish for.
+    </div>
+
+    <audio id="teacherAudio" src="https://res.cloudinary.com/dswvflav6/video/upload/v1770704169/ch3_shadowing_spwfot.mp3" preload="auto" crossorigin="anonymous"></audio>
+
+    <button id="startBtn" class="btn">🔴 Start Reading (開始跟讀)</button>
+    <button id="stopBtn" class="btn" disabled>⏹️ Stop (停止)</button>
+    
+    <div id="status" class="status-badge">Ready / 準備就緒</div>
+    
+    <audio id="audioPlayer" controls style="display: none;"></audio>
+    <button id="uploadBtn" class="btn" style="display: none;">📤 Send (上傳練習檔)</button>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbykzpuqx9r7ol0tjeRYBIq71gRkdnxRz6WkcBjYdtbp-u3tUqfSEDlRmtTrd_bVLKD3AQ/exec";
+    
+    // 💡 抓取網址參數 (例如 ?class=301)
+    const urlParams = new URLSearchParams(window.location.search);
+    const className = urlParams.get('class') || "General";
+    document.getElementById('displayClass').innerText = "Class: " + className;
+
+    let recorder, chunks = [], audioContext, dest, teacherSource, micSource;
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const teacherAudio = document.getElementById('teacherAudio');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const status = document.getElementById('status');
+    const studentNameInput = document.getElementById('studentName');
+
+    startBtn.onclick = async () => {
+        if (!studentNameInput.value.trim()) { alert("Please enter name!"); return; }
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            dest = audioContext.createMediaStreamDestination();
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micSource = audioContext.createMediaStreamSource(micStream);
+            micSource.connect(dest);
+            teacherSource = audioContext.createMediaElementSource(teacherAudio);
+            teacherSource.connect(dest);
+            teacherSource.connect(audioContext.destination);
+
+            recorder = new MediaRecorder(dest.stream);
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                audioPlayer.src = URL.createObjectURL(blob);
+                audioPlayer.style.display = 'block';
+                uploadBtn.style.display = 'block';
+                status.innerText = "Finished! / 錄音完成。";
+            };
+
+            chunks = [];
+            teacherAudio.play();
+            recorder.start();
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            status.innerText = "🔴 Recording... / 錄音中...";
+        } catch (err) { alert("Error accessing mic."); }
+    };
+
+    stopBtn.onclick = () => {
+        recorder.stop();
+        teacherAudio.pause();
+        teacherAudio.currentTime = 0;
+        audioContext.close();
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+    };
+
+    uploadBtn.onclick = async () => {
+        const name = studentNameInput.value.trim();
+        status.innerText = "🚀 Uploading... / 上傳中...";
+        uploadBtn.disabled = true;
+        const blob = await fetch(audioPlayer.src).then(r => r.blob());
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = async () => {
+            const base64Data = reader.result.split(',')[1];
+            try {
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        audio: base64Data,
+                        className: className,
+                        name: name + "_" + new Date().getTime()
+                    })
+                });
+                status.innerText = "✅ Success! / 上傳成功！";
+                uploadBtn.style.display = 'none';
+            } catch (e) { 
+                status.innerText = "❌ Failed. / 失敗。";
+                uploadBtn.disabled = false;
+            }
+        };
+    };
+</script>
+
+</body>
+</html>
