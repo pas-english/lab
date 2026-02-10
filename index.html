@@ -8,11 +8,8 @@
         body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; }
         .classroom { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; box-sizing: border-box; }
         .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.8; }
-        
-        /* 圖片顯示區 */
         #mediaContainer { width: 100%; margin-bottom: 15px; border-radius: 15px; overflow: hidden; display: none; }
         #mediaContainer img { width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; display: block; }
-        
         .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 19px; color: #2d3748; min-height: 60px; white-space: pre-wrap; }
         .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; flex-wrap: wrap; }
         .input-item { flex: 1; min-width: 140px; }
@@ -23,7 +20,6 @@
         #uploadBtn { background: #38a169; color: white; }
         .status { margin-top: 10px; font-weight: bold; color: #2d3748; }
         #playerContainer { background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px; display: none; }
-        
         .btn:active { opacity: 0.7; transform: scale(0.98); }
         .btn:disabled { background: #cbd5e0 !important; cursor: not-allowed; }
     </style>
@@ -31,12 +27,12 @@
 <body>
 
 <div class="classroom">
-    <h1 id="lessonTitle">載入教材中...</h1>
+    <h1 id="lessonTitle">正在開啟教室...</h1>
     <p style="color: #718096; margin: 5px 0 20px 0; font-weight: bold;">Jackie's English Reading Lab</p>
 
     <div class="how-to-play">
-        <b>💡 強迫式間隔迴聲練習：</b><br>
-        1. 選擇班級姓名。 2. 按 <b>Start</b> 聽老師讀。 3. 在<b>空白間隔</b>模仿。 4. 讀完按 <b>Stop</b> 停止。 5. 按 <b>Send</b> 上傳。
+        <b>💡 練習步驟：</b><br>
+        1. 輸入姓名。 2. 按 <b>Start</b> 聽老師讀。 3. 在空白處模仿。 4. 讀完按 <b>Stop</b>。 5. 按 <b>Send</b>。
     </div>
 
     <div id="mediaContainer"></div>
@@ -44,7 +40,7 @@
     <div class="input-group">
         <div class="input-item">
             <select id="className">
-                <option value="General">-- 選擇班級 --</option>
+                <option value="General">-- 班級 --</option>
                 <option value="1A">1A</option><option value="G7">G7</option><option value="G8">G8</option>
             </select>
         </div>
@@ -53,46 +49,49 @@
         </div>
     </div>
 
-    <div class="reading-text" id="lessonText">正在同步雲端資料...</div>
+    <div class="reading-text" id="lessonText">正在同步教材內容，請稍候...</div>
 
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous"></audio>
 
-    <button id="startBtn" class="btn">🔴 Start Reading (開始跟讀)</button>
-    <button id="stopBtn" class="btn" disabled>⏹️ Stop (停止並試聽)</button>
+    <button id="startBtn" class="btn">🔴 Start Reading</button>
+    <button id="stopBtn" class="btn" disabled>⏹️ Stop</button>
     
     <div id="status" class="status">Ready</div>
     
     <div id="playerContainer">
-        <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold;">🎧 你的練習錄音：</p>
+        <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold;">🎧 試聽你的錄音：</p>
         <audio id="audioPlayer" controls style="width: 100%;"></audio>
     </div>
     
-    <button id="uploadBtn" class="btn" style="display: none;">📤 Send (傳送給老師)</button>
+    <button id="uploadBtn" class="btn" style="display: none;">📤 Send to Jackie</button>
 </div>
 
 <script>
-    // 🌟 已更新為老師剛才部署成功的 GAS 網址
+    // 確定的 GAS 網址，無空格
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
 
     let recorder, chunks = [], activeStream;
 
     async function loadLesson() {
         try {
-            const res = await fetch(GAS_URL);
+            // 強制清除快取請求
+            const res = await fetch(GAS_URL + '?t=' + new Date().getTime());
             const data = await res.json();
+            
             document.getElementById('lessonTitle').innerText = data.title || "Echoing Practice";
             document.getElementById('lessonText').innerText = data.text || "目前沒有課文內容";
             document.getElementById('teacherAudio').src = data.audio;
             
             const container = document.getElementById('mediaContainer');
             if (data.media_type === "image" && data.media_url) {
-                container.innerHTML = `<img src="${data.media_url}" alt="Picture Book">`;
+                container.innerHTML = `<img src="${data.media_url}" alt="Book Image">`;
                 container.style.display = 'block';
             } else {
                 container.style.display = 'none';
             }
         } catch (e) {
-            document.getElementById('lessonText').innerText = "無法讀取教材，請檢查試算表共用權限與 GAS 部署。";
+            console.error(e);
+            document.getElementById('lessonText').innerText = "連線失敗。請嘗試：1. 使用無痕視窗。2. 檢查網路。";
         }
     }
     loadLesson();
@@ -116,6 +115,7 @@
             const teacherSource = audioCtx.createMediaElementSource(teacherAudio);
             teacherSource.connect(dest);
             teacherSource.connect(audioCtx.destination);
+            
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
@@ -123,25 +123,25 @@
                 audioPlayer.src = URL.createObjectURL(blob);
                 document.getElementById('playerContainer').style.display = 'block';
                 uploadBtn.style.display = 'block';
-                status.innerText = "錄音完成！可試聽後傳送。";
+                status.innerText = "錄音完成！可試聽。";
                 activeStream.getTracks().forEach(track => track.stop());
             };
             chunks = [];
             teacherAudio.play();
             recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 正在錄音中...";
+            status.innerText = "🔴 錄製中...";
         } catch (err) { alert("麥克風存取失敗。"); }
     };
 
     stopBtn.onclick = () => {
-        if(recorder) recorder.stop();
+        if(recorder && recorder.state !== "inactive") recorder.stop();
         teacherAudio.pause(); teacherAudio.currentTime = 0;
         startBtn.disabled = false; stopBtn.disabled = true;
     };
 
     uploadBtn.onclick = async () => {
-        status.innerText = "🚀 正在傳送給老師...";
+        status.innerText = "🚀 傳送中...";
         uploadBtn.disabled = true;
         const blob = await fetch(audioPlayer.src).then(r => r.blob());
         const reader = new FileReader();
@@ -149,7 +149,7 @@
         reader.onloadend = async () => {
             const base64Data = reader.result.split(',')[1];
             try {
-                const response = await fetch(GAS_URL, {
+                await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         audio: base64Data,
@@ -159,7 +159,10 @@
                 });
                 status.innerText = "✅ 上傳成功！";
                 uploadBtn.style.display = 'none';
-            } catch (e) { status.innerText = "❌ 傳送失敗"; uploadBtn.disabled = false; }
+            } catch (e) { 
+                status.innerText = "❌ 失敗，請再按一次 Send"; 
+                uploadBtn.disabled = false; 
+            }
         };
     };
 </script>
