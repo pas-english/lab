@@ -5,46 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jackie's Reading Lab</title>
     <style>
-        body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .classroom { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
-        .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.6; }
-        /* 🌟 修正後的文字區塊：確保長課文不會被切斷 */
+        body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; }
+        .classroom { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 100%; width: 100%; text-align: center; box-sizing: border-box; }
+        .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 12px; margin-bottom: 15px; border-radius: 10px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.5; }
+        
+        /* 🌟 核心修正：讓文字區塊在手機上能完全伸展 */
         .reading-text { 
             background: #fff; 
             border: 2px solid #e2e8f0; 
-            padding: 25px; 
+            padding: 20px; 
             border-radius: 15px; 
-            margin: 20px 0; 
+            margin: 15px 0; 
             text-align: left; 
-            line-height: 1.8; 
-            font-size: 19px; 
+            line-height: 1.7; 
+            font-size: 18px; 
             color: #2d3748;
-            min-height: 100px; /* 最小高度 */
-            height: auto;      /* 自動伸展 */
-            word-wrap: break-word; 
+            min-height: 150px; /* 最小高度 */
+            height: auto;      /* 讓高度自動適應文字 */
+            overflow: visible; /* 絕不隱藏溢出的文字 */
+            word-wrap: break-word;
+            display: block;
         }
-        .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; }
-        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; }
-        .btn { padding: 18px; font-size: 18px; margin: 10px 0; cursor: pointer; border-radius: 15px; border: none; font-weight: bold; width: 100%; transition: 0.2s; }
+
+        .input-group { margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; }
+        .btn { padding: 16px; font-size: 18px; margin: 8px 0; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; width: 100%; }
         #startBtn { background: #e53e3e; color: white; }
         #stopBtn { background: #4a5568; color: white; }
         #uploadBtn { background: #38a169; color: white; }
-        .status { margin-top: 15px; font-weight: bold; color: #2d3748; min-height: 24px; }
-        audio { width: 100%; margin-top: 10px; border-radius: 10px; }
-        #playerContainer { background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px; display: none; }
+        .status { margin-top: 10px; font-weight: bold; color: #2d3748; font-size: 15px; }
+        audio { width: 100%; margin-top: 10px; }
+        #playerContainer { background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px; display: none; text-align: left; }
     </style>
 </head>
 <body>
 
 <div class="classroom">
-    <h1 style="margin:0;">🎙️ Echoing Practice</h1>
-    <p style="color: #718096; margin-bottom: 20px;">Jackie's English Reading Lab</p>
+    <h1 style="margin:0; font-size: 24px;">🎙️ Echoing Practice</h1>
+    <p style="color: #718096; margin: 5px 0 15px 0; font-size: 14px;">Jackie's English Reading Lab</p>
 
     <div class="how-to-play">
         <b>💡 操作流程：</b><br>
-        1. 選擇班級並輸入姓名。<br>
-        2. 按 <b>Start</b> 開始，聽一段讀一段。<br>
-        3. 完畢按 <b>Stop</b>，可先試聽，再按 <b>Send</b> 上傳。
+        1. 輸入班級與姓名。<br>
+        2. 按 <b>Start</b> 跟讀老師。<br>
+        3. 按 <b>Stop</b> 停止錄音並試聽。<br>
+        4. 按 <b>Send</b> 上傳練習。
     </div>
 
     <div class="input-group">
@@ -53,22 +58,22 @@
             <option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option>
             <option value="1A">1A</option><option value="1B">1B</option>
         </select>
-        <input type="text" id="studentName" placeholder="請輸入姓名">
+        <input type="text" id="studentName" placeholder="學生姓名">
     </div>
 
-    <div class="reading-text" id="lessonText">
+    <div class="reading-text">
         The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two days. But Anthea spent a lot of time thinking about what to wish for.
     </div>
 
     <audio id="teacherAudio" src="https://res.cloudinary.com/dswvflav6/video/upload/v1770704169/ch3_shadowing_spwfot.mp3" preload="auto" crossorigin="anonymous"></audio>
 
-    <button id="startBtn" class="btn">🔴 Start Reading (開始跟讀)</button>
+    <button id="startBtn" class="btn">🔴 Start Reading</button>
     <button id="stopBtn" class="btn" disabled>⏹️ Stop (停止並試聽)</button>
     
-    <div id="status" class="status">Ready / 準備就緒</div>
+    <div id="status" class="status">準備就緒</div>
     
     <div id="playerContainer">
-        <p style="margin:0 0 10px 0; font-size:14px; color:#4a5568;">🎧 你的練習錄音：</p>
+        <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold;">🎧 你的練習錄音：</p>
         <audio id="audioPlayer" controls></audio>
     </div>
     
@@ -89,7 +94,7 @@
 
     startBtn.onclick = async () => {
         if (!studentNameInput.value.trim()) { 
-            alert("💡 Jackie 老師提醒：別忘了輸入姓名喔！"); 
+            alert("💡 Jackie 老師提醒：請輸入姓名！"); 
             return; 
         }
         try {
@@ -103,36 +108,32 @@
             teacherSource.connect(dest);
             teacherSource.connect(audioContext.destination);
 
-            recorder = new MediaRecorder(dest.stream, { mimeType: 'audio/webm' });
+            recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/webm' });
                 audioPlayer.src = URL.createObjectURL(blob);
                 document.getElementById('playerContainer').style.display = 'block';
                 uploadBtn.style.display = 'block';
-                status.innerText = "🎉 錄音完成！點播放鈕試聽，或按 Send 上傳。";
+                status.innerText = "🎉 錄製完成！可試聽或直接傳送。";
             };
 
             chunks = [];
             teacherAudio.play();
             recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 正在錄音中，加油！";
-        } catch (err) { alert("麥克風存取失敗，請確認是否開啟權限。"); }
+            status.innerText = "🔴 正在錄音中...";
+        } catch (err) { alert("麥克風開啟失敗！"); }
     };
 
     stopBtn.onclick = () => {
-        if (recorder && recorder.state !== "inactive") {
-            recorder.stop();
-            teacherAudio.pause();
-            teacherAudio.currentTime = 0;
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-        }
+        recorder.stop();
+        teacherAudio.pause(); teacherAudio.currentTime = 0;
+        startBtn.disabled = false; stopBtn.disabled = true;
     };
 
     uploadBtn.onclick = async () => {
-        status.innerText = "🚀 正在傳送檔案給老師...";
+        status.innerText = "🚀 傳送中...";
         uploadBtn.disabled = true;
         const blob = await fetch(audioPlayer.src).then(r => r.blob());
         const reader = new FileReader();
@@ -149,7 +150,7 @@
                         name: studentNameInput.value.trim()
                     })
                 });
-                status.innerText = "✅ 上傳成功！Jackie 老師收到了。";
+                status.innerText = "✅ 上傳成功！";
                 uploadBtn.style.display = 'none';
             } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
         };
