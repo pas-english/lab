@@ -8,7 +8,21 @@
         body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 20px; margin: 0; }
         .classroom { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
         .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.6; }
-        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 25px; border-radius: 15px; margin: 20px 0; text-align: left; line-height: 1.8; font-size: 19px; color: #2d3748; }
+        /* 🌟 修正後的文字區塊：確保長課文不會被切斷 */
+        .reading-text { 
+            background: #fff; 
+            border: 2px solid #e2e8f0; 
+            padding: 25px; 
+            border-radius: 15px; 
+            margin: 20px 0; 
+            text-align: left; 
+            line-height: 1.8; 
+            font-size: 19px; 
+            color: #2d3748;
+            min-height: 100px; /* 最小高度 */
+            height: auto;      /* 自動伸展 */
+            word-wrap: break-word; 
+        }
         .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; }
         input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; }
         .btn { padding: 18px; font-size: 18px; margin: 10px 0; cursor: pointer; border-radius: 15px; border: none; font-weight: bold; width: 100%; transition: 0.2s; }
@@ -43,11 +57,7 @@
     </div>
 
     <div class="reading-text" id="lessonText">
-        The next day was very wet. It rained all day and the children could not go to see 
-        the Psammead. They stayed at home and wrote letters to their mother. 
-        But none of them told her about the Psammead. And the day after that, 
-        their Uncle Richard came and took them out, so they didn’t see the Psammead 
-        for two days. But Anthea spent a lot of time thinking about what to wish for.
+        The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two days. But Anthea spent a lot of time thinking about what to wish for.
     </div>
 
     <audio id="teacherAudio" src="https://res.cloudinary.com/dswvflav6/video/upload/v1770704169/ch3_shadowing_spwfot.mp3" preload="auto" crossorigin="anonymous"></audio>
