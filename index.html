@@ -30,8 +30,8 @@
     <div class="how-to-play">
         <b>💡 操作流程：</b><br>
         1. 選擇班級並輸入姓名。<br>
-        2. 按 <b>Start</b> 開始錄音練習。<br>
-        3. 完畢後按 <b>Stop</b>，最後按 <b>Send</b> 上傳給老師。
+        2. 按 <b>Start</b> 開始，聽老師讀一段、你就跟著讀一段。<br>
+        3. 完畢後按 <b>Stop</b>，最後按 <b>Send</b> 上傳。
     </div>
 
     <div class="input-group">
@@ -53,7 +53,7 @@
         </div>
         <div class="input-item">
             <label>👤 Name (姓名):</label>
-            <input type="text" id="studentName" placeholder="請輸入姓名">
+            <input type="text" id="studentName" placeholder="學生姓名">
         </div>
     </div>
 
@@ -77,8 +77,8 @@
 </div>
 
 <script>
-    // ⚠️ 請記得更換下方 GAS 網址為您部署後的網址
-    const GAS_URL = "您的網址"; 
+    // ⚠️ 請務必將下方網址換成您部署後的 GAS 網頁應用程式 URL
+    const GAS_URL = "您的最新GAS網址"; 
     
     window.onload = () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -96,15 +96,14 @@
     const studentNameInput = document.getElementById('studentName');
 
     startBtn.onclick = async () => {
+        // 🌟 彈出式溫馨提醒
         if (!studentNameInput.value.trim()) { 
-            status.style.color = "#e53e3e";
-            status.innerText = "💡 老師提醒：要先輸入姓名才能開始喔！";
-            studentNameInput.style.borderColor = "#e53e3e";
+            alert("💡 Jackie 老師提醒：\n\n別忘了先輸入你的『姓名』喔！\n輸入完後再按一次 Start 就可以開始了。");
             studentNameInput.focus();
             return; 
         }
+
         try {
-            status.style.color = "#2d3748";
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             dest = audioContext.createMediaStreamDestination();
             const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -121,7 +120,7 @@
                 audioPlayer.src = URL.createObjectURL(blob);
                 audioPlayer.style.display = 'block';
                 uploadBtn.style.display = 'block';
-                status.innerText = "🎉 太棒了！錄完囉，請按 Send 上傳。";
+                status.innerText = "🎉 錄音完成！請點擊下方 Send 上傳。";
             };
 
             chunks = [];
@@ -131,7 +130,7 @@
             stopBtn.disabled = false;
             status.innerText = "🔴 正在錄音中，加油！跟著老師讀...";
         } catch (err) { 
-            status.innerText = "❌ 麥克風存取失敗，請允許權限。";
+            alert("麥克風開啟失敗，請確認是否允許網頁存取麥克風。");
         }
     };
 
@@ -145,7 +144,7 @@
     uploadBtn.onclick = async () => {
         const name = studentNameInput.value.trim();
         const selClass = document.getElementById('className').value;
-        status.innerText = "🚀 上傳中...";
+        status.innerText = "🚀 正在傳送檔案給老師...";
         uploadBtn.disabled = true;
         
         const blob = await fetch(audioPlayer.src).then(r => r.blob());
@@ -163,10 +162,10 @@
                         name: name + "_" + new Date().getTime()
                     })
                 });
-                status.innerText = "✅ 上傳成功！";
+                status.innerText = "✅ 上傳成功！Jackie 老師會收到你的練習喔。";
                 uploadBtn.style.display = 'none';
             } catch (e) { 
-                status.innerText = "❌ 上傳失敗，請重試。";
+                status.innerText = "❌ 上傳失敗，請檢查網路並重試。";
                 uploadBtn.disabled = false;
             }
         };
