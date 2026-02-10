@@ -5,44 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jackie's Reading Lab</title>
     <style>
-        body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 20px; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 20px; margin: 0; }
         .classroom { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
-        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 25px; border-radius: 15px; margin: 20px 0; text-align: left; line-height: 1.8; font-size: 19px; }
+        /* 🌟 這是找回來的黃色提示框樣式 */
+        .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.6; }
+        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 25px; border-radius: 15px; margin: 20px 0; text-align: left; line-height: 1.8; font-size: 19px; color: #2d3748; }
         .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; }
-        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; }
-        .btn { padding: 18px; font-size: 18px; margin: 10px 0; cursor: pointer; border-radius: 15px; border: none; font-weight: bold; width: 100%; }
+        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; }
+        .btn { padding: 18px; font-size: 18px; margin: 10px 0; cursor: pointer; border-radius: 15px; border: none; font-weight: bold; width: 100%; transition: 0.2s; }
         #startBtn { background: #e53e3e; color: white; }
         #stopBtn { background: #4a5568; color: white; }
         #uploadBtn { background: #38a169; color: white; }
-        .status { margin-top: 15px; font-weight: bold; color: #2d3748; }
+        .status { margin-top: 15px; font-weight: bold; color: #2d3748; min-height: 24px; }
     </style>
 </head>
 <body>
+
 <div class="classroom">
     <h1 style="margin:0;">🎙️ Echoing Practice</h1>
-    <p style="color: #718096;">Jackie's English Reading Lab</p>
+    <p style="color: #718096; margin-bottom: 20px;">Jackie's English Reading Lab</p>
+
+    <div class="how-to-play">
+        <b>💡 操作流程：</b><br>
+        1. 選擇班級並輸入姓名。<br>
+        2. 按 <b>Start</b> 開始，聽老師讀一段、你就跟著讀一段。<br>
+        3. 完畢後按 <b>Stop</b>，最後按 <b>Send</b> 上傳。
+    </div>
+
     <div class="input-group">
         <select id="className">
             <option value="General">-- 選擇班級 --</option>
             <option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option>
-            <option value="1A">1A</option><option value="1B">1B</option>
+            <option value="1A">1A</option><option value="1B">1B</option><option value="1C">1C</option>
         </select>
-        <input type="text" id="studentName" placeholder="請輸入姓名">
+        <input type="text" id="studentName" placeholder="學生姓名">
     </div>
+
     <div class="reading-text">
         The next day was very wet. It rained all day and the children could not go to see 
-        the Psammead. They stayed at home and wrote letters to their mother.
+        the Psammead. They stayed at home and wrote letters to their mother. 
+        But none of them told her about the Psammead.
     </div>
-    <audio id="teacherAudio" src="https://res.cloudinary.com/dswvflav6/video/upload/v1770704169/ch3_shadowing_spwfot.mp3" crossorigin="anonymous"></audio>
-    <button id="startBtn" class="btn">🔴 Start Reading</button>
-    <button id="stopBtn" class="btn" disabled>⏹️ Stop</button>
+
+    <audio id="teacherAudio" src="https://res.cloudinary.com/dswvflav6/video/upload/v1770704169/ch3_shadowing_spwfot.mp3" preload="auto" crossorigin="anonymous"></audio>
+
+    <button id="startBtn" class="btn">🔴 Start Reading (開始跟讀)</button>
+    <button id="stopBtn" class="btn" disabled>⏹️ Stop (停止)</button>
+    
     <div id="status" class="status">Ready / 準備就緒</div>
+    
     <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 10px;"></audio>
-    <button id="uploadBtn" class="btn" style="display: none;">📤 Send (上傳檔案)</button>
+    <button id="uploadBtn" class="btn" style="display: none;">📤 Send (傳送給老師)</button>
 </div>
 
 <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwULwx5HJzU0anAPGaxYSwDLYUPD4W0IyfXteVi8uSKtsoNuAdu9A-AeMZYcrJp81z0lg/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwULwx5HJzU0anAPGaxYSwDLYUPD4W0IyfXteVi8uSKtsoNuAdu9A-AeMZYcrJp81z0lg/exec"; 
 
     let recorder, chunks = [], audioContext, dest, teacherSource;
     const startBtn = document.getElementById('startBtn');
@@ -54,7 +71,7 @@
     const studentNameInput = document.getElementById('studentName');
 
     startBtn.onclick = async () => {
-        // 🌟 溫馨提醒
+        // 🌟 彈出式溫馨提醒
         if (!studentNameInput.value.trim()) { 
             alert("💡 Jackie 老師提醒：\n\n別忘了先輸入你的『姓名』喔！"); 
             return; 
@@ -83,8 +100,8 @@
             teacherAudio.play();
             recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 錄音中...";
-        } catch (err) { alert("麥克風開啟失敗，請檢查權限！"); }
+            status.innerText = "🔴 正在錄音中，加油！跟著老師讀...";
+        } catch (err) { alert("麥克風開啟失敗，請允許權限！"); }
     };
 
     stopBtn.onclick = () => {
@@ -95,7 +112,7 @@
     };
 
     uploadBtn.onclick = async () => {
-        status.innerText = "🚀 上傳中...";
+        status.innerText = "🚀 正在傳送檔案給老師...";
         uploadBtn.disabled = true;
         const blob = await fetch(audioPlayer.src).then(r => r.blob());
         const reader = new FileReader();
@@ -109,14 +126,15 @@
                     body: JSON.stringify({
                         audio: base64Data,
                         className: document.getElementById('className').value,
-                        name: studentNameInput.value.trim()
+                        name: studentNameInput.value.trim() + "_" + new Date().getTime()
                     })
                 });
-                status.innerText = "✅ 上傳成功！";
+                status.innerText = "✅ 上傳成功！Jackie 老師收到了。";
                 uploadBtn.style.display = 'none';
-            } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
+            } catch (e) { status.innerText = "❌ 上傳失敗，請重試。"; uploadBtn.disabled = false; }
         };
     };
 </script>
+
 </body>
 </html>
