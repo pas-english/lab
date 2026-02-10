@@ -2,31 +2,13 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Jackie's Reading Lab</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; }
         .classroom { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 100%; width: 100%; text-align: center; box-sizing: border-box; }
         .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 12px; margin-bottom: 15px; border-radius: 10px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.5; }
-        
-        /* 🌟 核心修正：讓文字區塊在手機上能完全伸展 */
-        .reading-text { 
-            background: #fff; 
-            border: 2px solid #e2e8f0; 
-            padding: 20px; 
-            border-radius: 15px; 
-            margin: 15px 0; 
-            text-align: left; 
-            line-height: 1.7; 
-            font-size: 18px; 
-            color: #2d3748;
-            min-height: 150px; /* 最小高度 */
-            height: auto;      /* 讓高度自動適應文字 */
-            overflow: visible; /* 絕不隱藏溢出的文字 */
-            word-wrap: break-word;
-            display: block;
-        }
-
+        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 18px; color: #2d3748; min-height: 150px; height: auto; overflow: visible; word-wrap: break-word; }
         .input-group { margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 10px; }
         input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; }
         .btn { padding: 16px; font-size: 18px; margin: 8px 0; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; width: 100%; }
@@ -46,10 +28,7 @@
 
     <div class="how-to-play">
         <b>💡 操作流程：</b><br>
-        1. 輸入班級與姓名。<br>
-        2. 按 <b>Start</b> 跟讀老師。<br>
-        3. 按 <b>Stop</b> 停止錄音並試聽。<br>
-        4. 按 <b>Send</b> 上傳練習。
+        1. 輸入班級姓名。 2. 按 <b>Start</b> 跟讀。 3. 按 <b>Stop</b> 停止並試聽。 4. 按 <b>Send</b> 上傳。
     </div>
 
     <div class="input-group">
@@ -83,7 +62,7 @@
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwULwx5HJzU0anAPGaxYSwDLYUPD4W0IyfXteVi8uSKtsoNuAdu9A-AeMZYcrJp81z0lg/exec"; 
 
-    let recorder, chunks = [], audioContext, dest, teacherSource;
+    let recorder, chunks = [], audioContext, dest, teacherSource, activeStream;
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const uploadBtn = document.getElementById('uploadBtn');
@@ -100,8 +79,10 @@
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             dest = audioContext.createMediaStreamDestination();
-            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const micSource = audioContext.createMediaStreamSource(micStream);
+            
+            // 🌟 記錄這個 stream，以便稍後關閉
+            activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const micSource = audioContext.createMediaStreamSource(activeStream);
             micSource.connect(dest);
             
             teacherSource = audioContext.createMediaElementSource(teacherAudio);
@@ -115,7 +96,12 @@
                 audioPlayer.src = URL.createObjectURL(blob);
                 document.getElementById('playerContainer').style.display = 'block';
                 uploadBtn.style.display = 'block';
-                status.innerText = "🎉 錄製完成！可試聽或直接傳送。";
+                status.innerText = "🎉 錄製完成！可試聽或傳送。";
+                
+                // 🌟 核心修正：停止錄音後，強制關閉麥克風硬體
+                if (activeStream) {
+                    activeStream.getTracks().forEach(track => track.stop());
+                }
             };
 
             chunks = [];
@@ -127,9 +113,11 @@
     };
 
     stopBtn.onclick = () => {
-        recorder.stop();
-        teacherAudio.pause(); teacherAudio.currentTime = 0;
-        startBtn.disabled = false; stopBtn.disabled = true;
+        if (recorder && recorder.state !== "inactive") {
+            recorder.stop();
+            teacherAudio.pause(); teacherAudio.currentTime = 0;
+            startBtn.disabled = false; stopBtn.disabled = true;
+        }
     };
 
     uploadBtn.onclick = async () => {
@@ -152,6 +140,8 @@
                 });
                 status.innerText = "✅ 上傳成功！";
                 uploadBtn.style.display = 'none';
+                // 上傳完畢再次確保麥克風關閉
+                if (activeStream) { activeStream.getTracks().forEach(track => track.stop()); }
             } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
         };
     };
