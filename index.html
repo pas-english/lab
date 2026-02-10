@@ -1,99 +1,80 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jackie's Lab</title>
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; padding: 20px; display: flex; justify-content: center; }
-        .box { background: white; padding: 20px; border-radius: 15px; max-width: 500px; width: 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        img { width: 100%; border-radius: 10px; margin-bottom: 15px; display: none; }
-        .text { background: #f8fafc; padding: 15px; border-radius: 10px; margin: 15px 0; line-height: 1.6; font-size: 18px; }
-        .btn { width: 100%; padding: 15px; margin: 5px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        #startBtn { background: #e53e3e; color: white; }
-        #stopBtn { background: #4a5568; color: white; }
-        #uploadBtn { background: #38a169; color: white; display: none; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f4f8; }
+        .box { background: white; padding: 20px; border-radius: 15px; width: 100%; max-width: 400px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        img { width: 100%; border-radius: 10px; margin-top: 10px; display: none; }
+        .text { text-align: left; background: #eee; padding: 15px; margin: 15px 0; border-radius: 8px; line-height: 1.6; }
+        button { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #s { background: #e53e3e; color: white; }
+        #st { background: #4a5568; color: white; }
     </style>
 </head>
 <body>
-<div class="box">
-    <h2 id="title">載入中...</h2>
-    <img id="image" src="">
-    <input type="text" id="name" placeholder="學生姓名" style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
-    <div id="text" class="text">正在同步資料...</div>
-    <audio id="teacherAudio"></audio>
-    <button id="startBtn" class="btn">🔴 開始練習</button>
-    <button id="stopBtn" class="btn" disabled>⏹️ 停止</button>
-    <audio id="player" controls style="width:100%; margin-top:15px; display:none;"></audio>
-    <button id="uploadBtn" class="btn">📤 傳送給老師</button>
-    <p id="status" style="text-align:center; font-weight:bold;"></p>
-</div>
+    <div class="box">
+        <h2 id="t">載入教材...</h2>
+        <img id="i" src="">
+        <input type="text" id="n" placeholder="學生姓名" style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
+        <div id="tx" class="text">正在從試算表同步資料...</div>
+        <audio id="ta"></audio>
+        <button id="s">🔴 開始錄音 (Start)</button>
+        <button id="st" disabled>⏹️ 停止並傳送 (Stop)</button>
+        <p id="msg" style="font-weight:bold;"></p>
+    </div>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec";
 
-    async function init() {
+    async function load() {
         try {
             const r = await fetch(GAS_URL);
             const d = await r.json();
-            document.getElementById('title').innerText = d.title;
-            document.getElementById('text').innerText = d.text;
-            document.getElementById('teacherAudio').src = d.audio;
+            document.getElementById('t').innerText = d.title;
+            document.getElementById('tx').innerText = d.text;
+            document.getElementById('ta').src = d.audio;
             if(d.media_url) {
-                const img = document.getElementById('image');
+                const img = document.getElementById('i');
                 img.src = d.media_url;
                 img.style.display = 'block';
             }
-        } catch (e) { document.getElementById('text').innerText = "連線失敗，請稍後再試。"; }
+        } catch(e) { 
+            document.getElementById('tx').innerText = "連線失敗：請檢查 GAS 部署權限是否設為「所有人」。"; 
+        }
     }
-    init();
+    load();
 
     let rec, chunks = [];
-    const teacherAudio = document.getElementById('teacherAudio');
-
-    document.getElementById('startBtn').onclick = async () => {
-        if(!document.getElementById('name').value) return alert("請輸入姓名");
+    document.getElementById('s').onclick = async () => {
+        if(!document.getElementById('n').value) return alert("請輸入姓名");
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const ctx = new AudioContext();
-        const dest = ctx.createMediaStreamDestination();
-        ctx.createMediaStreamSource(stream).connect(dest);
-        ctx.createMediaElementSource(teacherAudio).connect(dest);
-        dest.connect(ctx.destination);
-        
-        rec = new MediaRecorder(dest.stream);
+        rec = new MediaRecorder(stream);
         rec.ondataavailable = e => chunks.push(e.data);
-        rec.onstop = () => {
+        rec.onstop = async () => {
+            document.getElementById('msg').innerText = "🚀 傳送中...";
             const blob = new Blob(chunks, { type: 'audio/webm' });
-            const p = document.getElementById('player');
-            p.src = URL.createObjectURL(blob);
-            p.style.display = 'block';
-            document.getElementById('uploadBtn').style.display = 'block';
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = async () => {
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ audio: reader.result.split(',')[1], name: document.getElementById('n').value }) });
+                document.getElementById('msg').innerText = "✅ 已成功傳送給 Jackie 老師！";
+            };
         };
-        chunks = [];
-        teacherAudio.play();
+        document.getElementById('ta').play();
         rec.start();
-        document.getElementById('startBtn').disabled = true;
-        document.getElementById('stopBtn').disabled = false;
+        document.getElementById('s').disabled = true;
+        document.getElementById('st').disabled = false;
+        document.getElementById('msg').innerText = "🔴 正在聽讀練習中...";
     };
 
-    document.getElementById('stopBtn').onclick = () => {
+    document.getElementById('st').onclick = () => {
         rec.stop();
-        teacherAudio.pause();
-        teacherAudio.currentTime = 0;
-        document.getElementById('startBtn').disabled = false;
-        document.getElementById('stopBtn').disabled = true;
-    };
-
-    document.getElementById('uploadBtn').onclick = async () => {
-        document.getElementById('status').innerText = "上傳中...";
-        const blob = await fetch(document.getElementById('player').src).then(r => r.blob());
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-            await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ audio: reader.result.split(',')[1], name: document.getElementById('name').value, className: 'G8' }) });
-            document.getElementById('status').innerText = "✅ 上傳成功！";
-            document.getElementById('uploadBtn').style.display = 'none';
-        };
+        document.getElementById('ta').pause();
+        document.getElementById('ta').currentTime = 0;
+        document.getElementById('s').disabled = false;
+        document.getElementById('st').disabled = true;
     };
 </script>
 </body>
