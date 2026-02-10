@@ -27,8 +27,8 @@
 <body>
 
 <div class="classroom">
-    <h1 id="lessonTitle">正在開啟教室...</h1>
-    <p style="color: #718096; margin: 5px 0 20px 0; font-weight: bold;">Jackie's English Reading Lab</p>
+    <h1 id="lessonTitle">🏫 Jackie's Classroom</h1>
+    <p style="color: #718096; margin: 5px 0 20px 0; font-weight: bold;">English Echoing Lab</p>
 
     <div class="how-to-play">
         <b>💡 練習步驟：</b><br>
@@ -67,37 +67,30 @@
 </div>
 
 <script>
+    // 確定的 GAS 網址
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
 
-    let recorder, chunks = [], activeStream;
-
-    // 終極修正：改用 mode: 'cors' 且不帶特殊 Header
-    async function loadLesson() {
-        try {
-            const res = await fetch(GAS_URL, {
-                method: 'GET',
-                mode: 'cors',
-                redirect: 'follow'
-            });
-            const data = await res.json();
-            
-            document.getElementById('lessonTitle').innerText = data.title || "Echoing Practice";
-            document.getElementById('lessonText').innerText = data.text || "目前沒有課文內容";
-            document.getElementById('teacherAudio').src = data.audio;
-            
-            const container = document.getElementById('mediaContainer');
-            if (data.media_type === "image" && data.media_url) {
-                container.innerHTML = `<img src="${data.media_url}" alt="Book Image">`;
-                container.style.display = 'block';
-            } else {
-                container.style.display = 'none';
-            }
-        } catch (e) {
-            console.error("Fetch Error:", e);
-            document.getElementById('lessonText').innerText = "系統連線中，請稍候 5 秒並手動重新整理網頁。";
+    // 終極修正：JSONP 回呼函式
+    function handleResponse(data) {
+        document.getElementById('lessonTitle').innerText = data.title || "Echoing Practice";
+        document.getElementById('lessonText').innerText = data.text || "目前沒有課文內容";
+        document.getElementById('teacherAudio').src = data.audio;
+        
+        const container = document.getElementById('mediaContainer');
+        if (data.media_type === "image" && data.media_url) {
+            container.innerHTML = `<img src="${data.media_url}" alt="Book Image">`;
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
         }
     }
-    loadLesson();
+
+    // 透過 script 標籤載入資料 (繞過 CORS)
+    const script = document.createElement('script');
+    script.src = GAS_URL + "?callback=handleResponse";
+    document.body.appendChild(script);
+
+    let recorder, chunks = [], activeStream;
 
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -133,8 +126,8 @@
             teacherAudio.play();
             recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 錄製中...";
-        } catch (err) { alert("麥克風開啟失敗，請檢查權限。"); }
+            status.innerText = "🔴 正在錄音中...";
+        } catch (err) { alert("麥克風存取失敗。"); }
     };
 
     stopBtn.onclick = () => {
@@ -154,14 +147,14 @@
             try {
                 await fetch(GAS_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // 解決上傳時的 CORS 問題
+                    mode: 'no-cors',
                     body: JSON.stringify({
                         audio: base64Data,
                         className: document.getElementById('className').value,
                         name: document.getElementById('studentName').value
                     })
                 });
-                status.innerText = "✅ 已傳送！請至雲端確認。";
+                status.innerText = "✅ 上傳成功！";
                 uploadBtn.style.display = 'none';
             } catch (e) { 
                 status.innerText = "❌ 失敗，請再按一次 Send"; 
