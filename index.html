@@ -17,6 +17,7 @@
         #uploadBtn { background: #38a169; color: white; }
         .status { margin-top: 15px; font-weight: bold; color: #2d3748; min-height: 24px; }
         audio { width: 100%; margin-top: 10px; border-radius: 10px; }
+        #playerContainer { background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -41,19 +42,22 @@
         <input type="text" id="studentName" placeholder="請輸入姓名">
     </div>
 
-    <div class="reading-text">
+    <div class="reading-text" id="lessonText">
         The next day was very wet. It rained all day and the children could not go to see 
-        the Psammead. They stayed at home and wrote letters to their mother.
+        the Psammead. They stayed at home and wrote letters to their mother. 
+        But none of them told her about the Psammead. And the day after that, 
+        their Uncle Richard came and took them out, so they didn’t see the Psammead 
+        for two days. But Anthea spent a lot of time thinking about what to wish for.
     </div>
 
     <audio id="teacherAudio" src="https://res.cloudinary.com/dswvflav6/video/upload/v1770704169/ch3_shadowing_spwfot.mp3" preload="auto" crossorigin="anonymous"></audio>
 
     <button id="startBtn" class="btn">🔴 Start Reading (開始跟讀)</button>
-    <button id="stopBtn" class="btn" disabled>⏹️ Stop (停止)</button>
+    <button id="stopBtn" class="btn" disabled>⏹️ Stop (停止並試聽)</button>
     
     <div id="status" class="status">Ready / 準備就緒</div>
     
-    <div id="playerContainer" style="display:none; background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px;">
+    <div id="playerContainer">
         <p style="margin:0 0 10px 0; font-size:14px; color:#4a5568;">🎧 你的練習錄音：</p>
         <audio id="audioPlayer" controls></audio>
     </div>
@@ -64,8 +68,7 @@
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwULwx5HJzU0anAPGaxYSwDLYUPD4W0IyfXteVi8uSKtsoNuAdu9A-AeMZYcrJp81z0lg/exec"; 
 
-    let audioContext, recorder, input, processor, wavBlob;
-    let chunks = [];
+    let recorder, chunks = [], audioContext, dest, teacherSource;
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const uploadBtn = document.getElementById('uploadBtn');
@@ -76,57 +79,54 @@
 
     startBtn.onclick = async () => {
         if (!studentNameInput.value.trim()) { 
-            alert("💡 Jackie 老師提醒：請先輸入姓名喔！"); 
+            alert("💡 Jackie 老師提醒：別忘了輸入姓名喔！"); 
             return; 
         }
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            dest = audioContext.createMediaStreamDestination();
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const micSource = audioContext.createMediaStreamSource(micStream);
+            micSource.connect(dest);
             
-            // 修正：針對 iPhone 進行錄音編碼優化
-            const source = audioContext.createMediaStreamSource(stream);
-            recorder = audioContext.createMediaStreamDestination();
-            source.connect(recorder);
-            
-            // 同時抓取老師音軌
-            const tSource = audioContext.createMediaElementSource(teacherAudio);
-            tSource.connect(recorder);
-            tSource.connect(audioContext.destination);
+            teacherSource = audioContext.createMediaElementSource(teacherAudio);
+            teacherSource.connect(dest);
+            teacherSource.connect(audioContext.destination);
 
-            const mediaRecorder = new MediaRecorder(recorder.stream);
-            mediaRecorder.ondataavailable = e => chunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                wavBlob = new Blob(chunks, { type: 'audio/mp3' }); // 改用廣泛支援的 MIME
-                const url = URL.createObjectURL(wavBlob);
-                audioPlayer.src = url;
+            recorder = new MediaRecorder(dest.stream, { mimeType: 'audio/webm' });
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                audioPlayer.src = URL.createObjectURL(blob);
                 document.getElementById('playerContainer').style.display = 'block';
                 uploadBtn.style.display = 'block';
-                status.innerText = "🎉 錄製完成，可以試聽或直接傳送。";
+                status.innerText = "🎉 錄音完成！點播放鈕試聽，或按 Send 上傳。";
             };
 
             chunks = [];
             teacherAudio.play();
-            mediaRecorder.start();
+            recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 錄音中，加油！";
+            status.innerText = "🔴 正在錄音中，加油！";
         } catch (err) { alert("麥克風存取失敗，請確認是否開啟權限。"); }
     };
 
     stopBtn.onclick = () => {
-        location.reload(); // 手機版最穩定的停止方式：重新載入狀態
-    };
-    
-    // 這裡我們優化 Stop 按鈕，原本的 stop 有時會卡住，改用下面這個監聽
-    teacherAudio.onended = () => {
-        // 如果老師音檔放完了，自動停止
-        status.innerText = "結束！請手動點擊 Stop 準備上傳。";
+        if (recorder && recorder.state !== "inactive") {
+            recorder.stop();
+            teacherAudio.pause();
+            teacherAudio.currentTime = 0;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
     };
 
     uploadBtn.onclick = async () => {
-        status.innerText = "🚀 正在傳送檔案...";
+        status.innerText = "🚀 正在傳送檔案給老師...";
         uploadBtn.disabled = true;
+        const blob = await fetch(audioPlayer.src).then(r => r.blob());
         const reader = new FileReader();
-        reader.readAsDataURL(wavBlob);
+        reader.readAsDataURL(blob);
         reader.onloadend = async () => {
             const base64Data = reader.result.split(',')[1];
             try {
@@ -139,7 +139,7 @@
                         name: studentNameInput.value.trim()
                     })
                 });
-                status.innerText = "✅ 上傳成功！";
+                status.innerText = "✅ 上傳成功！Jackie 老師收到了。";
                 uploadBtn.style.display = 'none';
             } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
         };
