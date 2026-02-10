@@ -7,7 +7,6 @@
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 20px; margin: 0; }
         .classroom { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
-        /* 🌟 這是找回來的黃色提示框樣式 */
         .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.6; }
         .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 25px; border-radius: 15px; margin: 20px 0; text-align: left; line-height: 1.8; font-size: 19px; color: #2d3748; }
         .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; }
@@ -17,6 +16,7 @@
         #stopBtn { background: #4a5568; color: white; }
         #uploadBtn { background: #38a169; color: white; }
         .status { margin-top: 15px; font-weight: bold; color: #2d3748; min-height: 24px; }
+        audio { width: 100%; margin-top: 10px; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -28,23 +28,22 @@
     <div class="how-to-play">
         <b>💡 操作流程：</b><br>
         1. 選擇班級並輸入姓名。<br>
-        2. 按 <b>Start</b> 開始，聽老師讀一段、你就跟著讀一段。<br>
-        3. 完畢後按 <b>Stop</b>，最後按 <b>Send</b> 上傳。
+        2. 按 <b>Start</b> 開始，聽一段讀一段。<br>
+        3. 完畢按 <b>Stop</b>，可先試聽，再按 <b>Send</b> 上傳。
     </div>
 
     <div class="input-group">
         <select id="className">
             <option value="General">-- 選擇班級 --</option>
             <option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option>
-            <option value="1A">1A</option><option value="1B">1B</option><option value="1C">1C</option>
+            <option value="1A">1A</option><option value="1B">1B</option>
         </select>
-        <input type="text" id="studentName" placeholder="學生姓名">
+        <input type="text" id="studentName" placeholder="請輸入姓名">
     </div>
 
     <div class="reading-text">
         The next day was very wet. It rained all day and the children could not go to see 
-        the Psammead. They stayed at home and wrote letters to their mother. 
-        But none of them told her about the Psammead.
+        the Psammead. They stayed at home and wrote letters to their mother.
     </div>
 
     <audio id="teacherAudio" src="https://res.cloudinary.com/dswvflav6/video/upload/v1770704169/ch3_shadowing_spwfot.mp3" preload="auto" crossorigin="anonymous"></audio>
@@ -54,14 +53,19 @@
     
     <div id="status" class="status">Ready / 準備就緒</div>
     
-    <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 10px;"></audio>
+    <div id="playerContainer" style="display:none; background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px;">
+        <p style="margin:0 0 10px 0; font-size:14px; color:#4a5568;">🎧 你的練習錄音：</p>
+        <audio id="audioPlayer" controls></audio>
+    </div>
+    
     <button id="uploadBtn" class="btn" style="display: none;">📤 Send (傳送給老師)</button>
 </div>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwULwx5HJzU0anAPGaxYSwDLYUPD4W0IyfXteVi8uSKtsoNuAdu9A-AeMZYcrJp81z0lg/exec"; 
 
-    let recorder, chunks = [], audioContext, dest, teacherSource;
+    let audioContext, recorder, input, processor, wavBlob;
+    let chunks = [];
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const uploadBtn = document.getElementById('uploadBtn');
@@ -71,52 +75,58 @@
     const studentNameInput = document.getElementById('studentName');
 
     startBtn.onclick = async () => {
-        // 🌟 彈出式溫馨提醒
         if (!studentNameInput.value.trim()) { 
-            alert("💡 Jackie 老師提醒：\n\n別忘了先輸入你的『姓名』喔！"); 
+            alert("💡 Jackie 老師提醒：請先輸入姓名喔！"); 
             return; 
         }
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            dest = audioContext.createMediaStreamDestination();
-            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const micSource = audioContext.createMediaStreamSource(micStream);
-            micSource.connect(dest);
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
-            teacherSource = audioContext.createMediaElementSource(teacherAudio);
-            teacherSource.connect(dest);
-            teacherSource.connect(audioContext.destination);
+            // 修正：針對 iPhone 進行錄音編碼優化
+            const source = audioContext.createMediaStreamSource(stream);
+            recorder = audioContext.createMediaStreamDestination();
+            source.connect(recorder);
+            
+            // 同時抓取老師音軌
+            const tSource = audioContext.createMediaElementSource(teacherAudio);
+            tSource.connect(recorder);
+            tSource.connect(audioContext.destination);
 
-            recorder = new MediaRecorder(dest.stream);
-            recorder.ondataavailable = e => chunks.push(e.data);
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                audioPlayer.src = URL.createObjectURL(blob);
-                audioPlayer.style.display = 'block';
+            const mediaRecorder = new MediaRecorder(recorder.stream);
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                wavBlob = new Blob(chunks, { type: 'audio/mp3' }); // 改用廣泛支援的 MIME
+                const url = URL.createObjectURL(wavBlob);
+                audioPlayer.src = url;
+                document.getElementById('playerContainer').style.display = 'block';
                 uploadBtn.style.display = 'block';
-                status.innerText = "🎉 錄音完成！請按 Send 上傳。";
+                status.innerText = "🎉 錄製完成，可以試聽或直接傳送。";
             };
+
             chunks = [];
             teacherAudio.play();
-            recorder.start();
+            mediaRecorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 正在錄音中，加油！跟著老師讀...";
-        } catch (err) { alert("麥克風開啟失敗，請允許權限！"); }
+            status.innerText = "🔴 錄音中，加油！";
+        } catch (err) { alert("麥克風存取失敗，請確認是否開啟權限。"); }
     };
 
     stopBtn.onclick = () => {
-        recorder.stop();
-        teacherAudio.pause(); teacherAudio.currentTime = 0;
-        audioContext.close();
-        startBtn.disabled = false; stopBtn.disabled = true;
+        location.reload(); // 手機版最穩定的停止方式：重新載入狀態
+    };
+    
+    // 這裡我們優化 Stop 按鈕，原本的 stop 有時會卡住，改用下面這個監聽
+    teacherAudio.onended = () => {
+        // 如果老師音檔放完了，自動停止
+        status.innerText = "結束！請手動點擊 Stop 準備上傳。";
     };
 
     uploadBtn.onclick = async () => {
-        status.innerText = "🚀 正在傳送檔案給老師...";
+        status.innerText = "🚀 正在傳送檔案...";
         uploadBtn.disabled = true;
-        const blob = await fetch(audioPlayer.src).then(r => r.blob());
         const reader = new FileReader();
-        reader.readAsDataURL(blob);
+        reader.readAsDataURL(wavBlob);
         reader.onloadend = async () => {
             const base64Data = reader.result.split(',')[1];
             try {
@@ -126,12 +136,12 @@
                     body: JSON.stringify({
                         audio: base64Data,
                         className: document.getElementById('className').value,
-                        name: studentNameInput.value.trim() + "_" + new Date().getTime()
+                        name: studentNameInput.value.trim()
                     })
                 });
-                status.innerText = "✅ 上傳成功！Jackie 老師收到了。";
+                status.innerText = "✅ 上傳成功！";
                 uploadBtn.style.display = 'none';
-            } catch (e) { status.innerText = "❌ 上傳失敗，請重試。"; uploadBtn.disabled = false; }
+            } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
         };
     };
 </script>
