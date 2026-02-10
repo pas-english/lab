@@ -49,7 +49,7 @@
         </div>
     </div>
 
-    <div class="reading-text" id="lessonText">正在讀取教材...</div>
+    <div class="reading-text" id="lessonText">正在同步雲端資料...</div>
 
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous"></audio>
 
@@ -72,15 +72,19 @@
     function handleResponse(data) {
         document.getElementById('lessonTitle').innerText = data.title || "Echoing Practice";
         document.getElementById('lessonText').innerText = data.text || "目前沒有課文內容";
-        // 確保音檔位址正確載入
+        
         const teacherAudio = document.getElementById('teacherAudio');
-        teacherAudio.src = data.audio;
-        teacherAudio.load();
+        if (data.audio) {
+            teacherAudio.src = data.audio;
+            teacherAudio.load();
+        }
         
         const container = document.getElementById('mediaContainer');
-        if (data.media_url) {
-            container.innerHTML = `<img src="${data.media_url}" alt="Book Image">`;
+        if (data.media_url && data.media_url.trim() !== "") {
+            container.innerHTML = `<img src="${data.media_url}" crossorigin="anonymous" alt="Book Image">`;
             container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
         }
     }
 
@@ -98,15 +102,15 @@
 
     startBtn.onclick = async () => {
         if (!document.getElementById('studentName').value.trim()) { alert("請輸入姓名！"); return; }
+        if (!teacherAudio.src) { alert("教材音檔尚未就緒，請重新整理網頁。"); return; }
+        
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             activeStream = stream;
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const dest = audioCtx.createMediaStreamDestination();
-            
             const micSource = audioCtx.createMediaStreamSource(stream);
             micSource.connect(dest);
-            
             const teacherSource = audioCtx.createMediaElementSource(teacherAudio);
             teacherSource.connect(dest);
             teacherSource.connect(audioCtx.destination);
@@ -123,11 +127,11 @@
             };
             
             chunks = [];
-            teacherAudio.play(); // 按下按鈕時主動播放
+            teacherAudio.play();
             recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 錄製中...";
-        } catch (err) { alert("無法開啟麥克風，請檢查權限。"); }
+            status.innerText = "🔴 正在錄音中...";
+        } catch (err) { alert("無法存取麥克風。請確認：1. 網址是 https 開頭 2. 已允許權限。"); }
     };
 
     stopBtn.onclick = () => {
