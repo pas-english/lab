@@ -6,10 +6,23 @@
     <title>Jackie's Reading Lab</title>
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; }
-        .classroom { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 100%; width: 100%; text-align: center; box-sizing: border-box; }
+        .classroom { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; box-sizing: border-box; }
         .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 12px; margin-bottom: 15px; border-radius: 10px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.5; }
-        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 18px; color: #2d3748; min-height: 150px; height: auto; overflow: visible; word-wrap: break-word; }
-        .input-group { margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 18px; color: #2d3748; min-height: 120px; height: auto; overflow: visible; word-wrap: break-word; }
+        
+        /* 🌟 核心修正：讓欄位在電腦上併排，在手機上堆疊 */
+        .input-group { 
+            margin-bottom: 15px; 
+            text-align: left; 
+            display: flex; 
+            gap: 10px; 
+            flex-wrap: wrap; /* 自動換行 */
+        }
+        .input-item { 
+            flex: 1; 
+            min-width: 150px; /* 寬度低於此值就會換行 */
+        }
+        
         input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; }
         .btn { padding: 16px; font-size: 18px; margin: 8px 0; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; width: 100%; }
         #startBtn { background: #e53e3e; color: white; }
@@ -28,16 +41,24 @@
 
     <div class="how-to-play">
         <b>💡 操作流程：</b><br>
-        1. 輸入班級姓名。 2. 按 <b>Start</b> 跟讀。 3. 按 <b>Stop</b> 停止並試聽。 4. 按 <b>Send</b> 上傳。
+        1. 輸入班級姓名。 2. 按 <b>Start</b> 跟讀。 3. 按 <b>Stop</b> 停止錄音。 4. 按 <b>Send</b> 上傳。
     </div>
 
     <div class="input-group">
-        <select id="className">
-            <option value="General">-- 選擇班級 --</option>
-            <option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option>
-            <option value="1A">1A</option><option value="1B">1B</option>
-        </select>
-        <input type="text" id="studentName" placeholder="學生姓名">
+        <div class="input-item">
+            <select id="className">
+                <option value="General">-- 選擇班級 --</option>
+                <optgroup label="小學部">
+                    <option value="1A">1A</option><option value="1B">1B</option><option value="2A">2A</option>
+                </optgroup>
+                <optgroup label="國中部">
+                    <option value="G7">G7</option><option value="G8">G8</option><option value="G9">G9</option>
+                </optgroup>
+            </select>
+        </div>
+        <div class="input-item">
+            <input type="text" id="studentName" placeholder="學生姓名">
+        </div>
     </div>
 
     <div class="reading-text">
@@ -79,8 +100,6 @@
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             dest = audioContext.createMediaStreamDestination();
-            
-            // 🌟 記錄這個 stream，以便稍後關閉
             activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const micSource = audioContext.createMediaStreamSource(activeStream);
             micSource.connect(dest);
@@ -97,11 +116,7 @@
                 document.getElementById('playerContainer').style.display = 'block';
                 uploadBtn.style.display = 'block';
                 status.innerText = "🎉 錄製完成！可試聽或傳送。";
-                
-                // 🌟 核心修正：停止錄音後，強制關閉麥克風硬體
-                if (activeStream) {
-                    activeStream.getTracks().forEach(track => track.stop());
-                }
+                if (activeStream) { activeStream.getTracks().forEach(track => track.stop()); }
             };
 
             chunks = [];
@@ -140,7 +155,6 @@
                 });
                 status.innerText = "✅ 上傳成功！";
                 uploadBtn.style.display = 'none';
-                // 上傳完畢再次確保麥克風關閉
                 if (activeStream) { activeStream.getTracks().forEach(track => track.stop()); }
             } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
         };
