@@ -9,11 +9,11 @@
         .classroom { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; box-sizing: border-box; }
         .how-to-play { background: #fff9db; border-left: 5px solid #fcc419; padding: 15px; margin-bottom: 20px; border-radius: 12px; text-align: left; font-size: 14px; color: #5c5f66; line-height: 1.8; }
         
-        /* 繪本/圖片顯示區 */
+        /* 圖片顯示區 */
         #mediaContainer { width: 100%; margin-bottom: 15px; border-radius: 15px; overflow: hidden; display: none; }
-        #mediaContainer img { width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: block; }
+        #mediaContainer img { width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; display: block; }
         
-        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 19px; color: #2d3748; min-height: 60px; height: auto; word-wrap: break-word; white-space: pre-wrap; }
+        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 19px; color: #2d3748; min-height: 60px; white-space: pre-wrap; }
         .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; flex-wrap: wrap; }
         .input-item { flex: 1; min-width: 140px; }
         input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; }
@@ -22,9 +22,8 @@
         #stopBtn { background: #4a5568; color: white; }
         #uploadBtn { background: #38a169; color: white; }
         .status { margin-top: 10px; font-weight: bold; color: #2d3748; }
-        #playerContainer { background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px; display: none; text-align: left; }
+        #playerContainer { background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px; display: none; }
         
-        /* 手機按鈕點擊後的視覺效果 */
         .btn:active { opacity: 0.7; transform: scale(0.98); }
         .btn:disabled { background: #cbd5e0 !important; cursor: not-allowed; }
     </style>
@@ -32,12 +31,12 @@
 <body>
 
 <div class="classroom">
-    <h1 id="lessonTitle" style="margin:0; font-size: 26px;">載入教材中...</h1>
+    <h1 id="lessonTitle">載入教材中...</h1>
     <p style="color: #718096; margin: 5px 0 20px 0; font-weight: bold;">Jackie's English Reading Lab</p>
 
     <div class="how-to-play">
         <b>💡 強迫式間隔迴聲練習：</b><br>
-        1. 選擇班級姓名。 2. 按 <b>Start</b> 聽老師讀。 3. 務必在<b>空白間隔</b>模仿。 4. 讀完按 <b>Stop</b> 停止。 5. 按 <b>Send</b> 上傳。
+        1. 選擇班級姓名。 2. 按 <b>Start</b> 聽老師讀。 3. 在<b>空白間隔</b>模仿。 4. 讀完按 <b>Stop</b> 停止。 5. 按 <b>Send</b> 上傳。
     </div>
 
     <div id="mediaContainer"></div>
@@ -72,18 +71,16 @@
 </div>
 
 <script>
-    // 🌟 您剛才部署成功的 GAS 網址
+    // 🌟 已更新為老師剛才部署成功的 GAS 網址
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
 
     let recorder, chunks = [], activeStream;
 
-    // 1. 從試算表同步教材
     async function loadLesson() {
         try {
             const res = await fetch(GAS_URL);
             const data = await res.json();
-            
-            document.getElementById('lessonTitle').innerText = "🎙️ " + (data.title || "Echoing Practice");
+            document.getElementById('lessonTitle').innerText = data.title || "Echoing Practice";
             document.getElementById('lessonText').innerText = data.text || "目前沒有課文內容";
             document.getElementById('teacherAudio').src = data.audio;
             
@@ -107,29 +104,18 @@
     const audioPlayer = document.getElementById('audioPlayer');
     const status = document.getElementById('status');
 
-    // 2. 錄音核心邏輯 (支援混合音軌：老師聲音 + 學生聲音)
     startBtn.onclick = async () => {
         if (!document.getElementById('studentName').value.trim()) { alert("請輸入姓名！"); return; }
-        
         try {
-            // 請求麥克風權限
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             activeStream = stream;
-            
-            // 建立 Web Audio API 混音環境
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const dest = audioCtx.createMediaStreamDestination();
-            
-            // 來源 A: 學生麥克風
             const micSource = audioCtx.createMediaStreamSource(stream);
             micSource.connect(dest);
-            
-            // 來源 B: 老師音檔
             const teacherSource = audioCtx.createMediaElementSource(teacherAudio);
             teacherSource.connect(dest);
-            teacherSource.connect(audioCtx.destination); // 學生耳機/喇叭也要聽到老師聲音
-
-            // 開始錄製混音後的音軌
+            teacherSource.connect(audioCtx.destination);
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
@@ -138,36 +124,25 @@
                 document.getElementById('playerContainer').style.display = 'block';
                 uploadBtn.style.display = 'block';
                 status.innerText = "錄音完成！可試聽後傳送。";
-                
-                // 釋放資源
                 activeStream.getTracks().forEach(track => track.stop());
-                audioCtx.close();
             };
-
             chunks = [];
             teacherAudio.play();
             recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 正在錄製 Echoing...";
-        } catch (err) { 
-            console.error(err);
-            alert("麥克風開啟失敗！請檢查瀏覽器設定。"); 
-        }
+            status.innerText = "🔴 正在錄音中...";
+        } catch (err) { alert("麥克風存取失敗。"); }
     };
 
     stopBtn.onclick = () => {
-        if (recorder && recorder.state === "recording") {
-            recorder.stop();
-        }
+        if(recorder) recorder.stop();
         teacherAudio.pause(); teacherAudio.currentTime = 0;
         startBtn.disabled = false; stopBtn.disabled = true;
     };
 
-    // 3. 上傳至 Google Drive
     uploadBtn.onclick = async () => {
-        status.innerText = "🚀 正在傳送給 Jackie 老師...";
+        status.innerText = "🚀 正在傳送給老師...";
         uploadBtn.disabled = true;
-        
         const blob = await fetch(audioPlayer.src).then(r => r.blob());
         const reader = new FileReader();
         reader.readAsDataURL(blob);
@@ -182,17 +157,9 @@
                         name: document.getElementById('studentName').value
                     })
                 });
-                const result = await response.text();
-                if (result === "Success") {
-                    status.innerText = "✅ 上傳成功！Jackie 老師收到了。";
-                    uploadBtn.style.display = 'none';
-                } else {
-                    throw new Error("Upload failed");
-                }
-            } catch (e) { 
-                status.innerText = "❌ 傳送失敗，請再試一次。"; 
-                uploadBtn.disabled = false; 
-            }
+                status.innerText = "✅ 上傳成功！";
+                uploadBtn.style.display = 'none';
+            } catch (e) { status.innerText = "❌ 傳送失敗"; uploadBtn.disabled = false; }
         };
     };
 </script>
