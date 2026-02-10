@@ -2,115 +2,97 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jackie's Reading Lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jackie's Lab</title>
     <style>
-        body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; display: flex; justify-content: center; padding: 15px; margin: 0; }
-        .classroom { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; box-sizing: border-box; }
-        #mediaContainer { width: 100%; margin-bottom: 15px; border-radius: 15px; overflow: hidden; display: none; }
-        #mediaContainer img { width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; display: block; }
-        .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 19px; color: #2d3748; min-height: 60px; white-space: pre-wrap; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; margin-bottom: 10px; }
-        .btn { padding: 18px; font-size: 18px; margin: 8px 0; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; width: 100%; transition: 0.3s; }
+        body { font-family: sans-serif; background: #f0f4f8; padding: 20px; display: flex; justify-content: center; }
+        .box { background: white; padding: 20px; border-radius: 15px; max-width: 500px; width: 100%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        img { width: 100%; border-radius: 10px; margin-bottom: 15px; display: none; }
+        .text { background: #f8fafc; padding: 15px; border-radius: 10px; margin: 15px 0; line-height: 1.6; font-size: 18px; }
+        .btn { width: 100%; padding: 15px; margin: 5px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
         #startBtn { background: #e53e3e; color: white; }
         #stopBtn { background: #4a5568; color: white; }
-        #uploadBtn { background: #38a169; color: white; }
-        .status { margin-top: 10px; font-weight: bold; color: #2d3748; text-align: center; }
-        #playerContainer { background: #edf2f7; padding: 15px; border-radius: 15px; margin-top: 10px; display: none; }
+        #uploadBtn { background: #38a169; color: white; display: none; }
     </style>
 </head>
 <body>
-
-<div class="classroom">
-    <h1 id="lessonTitle">Jackie's Reading Lab</h1>
-    <div id="mediaContainer"></div>
-    <div class="input-group">
-        <select id="className"><option value="General">-- 選擇班級 --</option><option value="1A">1A</option><option value="G7">G7</option><option value="G8">G8</option></select>
-        <input type="text" id="studentName" placeholder="輸入學生姓名">
-    </div>
-    <div class="reading-text" id="lessonText">載入教材中...</div>
-    <audio id="teacherAudio" preload="auto"></audio>
-    <button id="startBtn" class="btn">🔴 Start Reading</button>
-    <button id="stopBtn" class="btn" disabled>⏹️ Stop</button>
-    <div id="status" class="status">Ready</div>
-    <div id="playerContainer"><p style="margin:0 0 10px 0; font-weight:bold;">🎧 試聽錄音：</p><audio id="audioPlayer" controls style="width: 100%;"></audio></div>
-    <button id="uploadBtn" class="btn" style="display: none;">📤 Send to Jackie</button>
+<div class="box">
+    <h2 id="title">載入中...</h2>
+    <img id="image" src="">
+    <input type="text" id="name" placeholder="學生姓名" style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
+    <div id="text" class="text">正在同步資料...</div>
+    <audio id="teacherAudio"></audio>
+    <button id="startBtn" class="btn">🔴 開始練習</button>
+    <button id="stopBtn" class="btn" disabled>⏹️ 停止</button>
+    <audio id="player" controls style="width:100%; margin-top:15px; display:none;"></audio>
+    <button id="uploadBtn" class="btn">📤 傳送給老師</button>
+    <p id="status" style="text-align:center; font-weight:bold;"></p>
 </div>
 
 <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec";
 
-    function handleResponse(data) {
-        document.getElementById('lessonTitle').innerText = data.title;
-        document.getElementById('lessonText').innerText = data.text;
-        const teacherAudio = document.getElementById('teacherAudio');
-        teacherAudio.src = data.audio;
-        teacherAudio.load();
-        
-        const container = document.getElementById('mediaContainer');
-        if (data.media_url) {
-            container.innerHTML = `<img src="${data.media_url}" alt="教材圖片">`;
-            container.style.display = 'block';
-        }
-    }
-
-    const script = document.createElement('script');
-    script.src = GAS_URL + "?callback=handleResponse";
-    document.body.appendChild(script);
-
-    let recorder, chunks = [], activeStream;
-    const startBtn = document.getElementById('startBtn'), stopBtn = document.getElementById('stopBtn'), uploadBtn = document.getElementById('uploadBtn'), teacherAudio = document.getElementById('teacherAudio'), audioPlayer = document.getElementById('audioPlayer'), status = document.getElementById('status');
-
-    startBtn.onclick = async () => {
-        if (!document.getElementById('studentName').value.trim()) { alert("請輸入姓名！"); return; }
+    async function init() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            activeStream = stream;
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const dest = audioCtx.createMediaStreamDestination();
-            const micSource = audioCtx.createMediaStreamSource(stream);
-            micSource.connect(dest);
-            const teacherSource = audioCtx.createMediaElementSource(teacherAudio);
-            teacherSource.connect(dest);
-            teacherSource.connect(audioCtx.destination);
-            recorder = new MediaRecorder(dest.stream);
-            recorder.ondataavailable = e => chunks.push(e.data);
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                audioPlayer.src = URL.createObjectURL(blob);
-                document.getElementById('playerContainer').style.display = 'block';
-                uploadBtn.style.display = 'block';
-                status.innerText = "錄音完成！";
-                activeStream.getTracks().forEach(track => track.stop());
-            };
-            chunks = [];
-            teacherAudio.play();
-            recorder.start();
-            startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 錄製中...";
-        } catch (err) { alert("麥克風開啟失敗。"); }
+            const r = await fetch(GAS_URL);
+            const d = await r.json();
+            document.getElementById('title').innerText = d.title;
+            document.getElementById('text').innerText = d.text;
+            document.getElementById('teacherAudio').src = d.audio;
+            if(d.media_url) {
+                const img = document.getElementById('image');
+                img.src = d.media_url;
+                img.style.display = 'block';
+            }
+        } catch (e) { document.getElementById('text').innerText = "連線失敗，請稍後再試。"; }
+    }
+    init();
+
+    let rec, chunks = [];
+    const teacherAudio = document.getElementById('teacherAudio');
+
+    document.getElementById('startBtn').onclick = async () => {
+        if(!document.getElementById('name').value) return alert("請輸入姓名");
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ctx = new AudioContext();
+        const dest = ctx.createMediaStreamDestination();
+        ctx.createMediaStreamSource(stream).connect(dest);
+        ctx.createMediaElementSource(teacherAudio).connect(dest);
+        dest.connect(ctx.destination);
+        
+        rec = new MediaRecorder(dest.stream);
+        rec.ondataavailable = e => chunks.push(e.data);
+        rec.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const p = document.getElementById('player');
+            p.src = URL.createObjectURL(blob);
+            p.style.display = 'block';
+            document.getElementById('uploadBtn').style.display = 'block';
+        };
+        chunks = [];
+        teacherAudio.play();
+        rec.start();
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
     };
 
-    stopBtn.onclick = () => {
-        if(recorder && recorder.state !== "inactive") recorder.stop();
-        teacherAudio.pause(); teacherAudio.currentTime = 0;
-        startBtn.disabled = false; stopBtn.disabled = true;
+    document.getElementById('stopBtn').onclick = () => {
+        rec.stop();
+        teacherAudio.pause();
+        teacherAudio.currentTime = 0;
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('stopBtn').disabled = true;
     };
 
-    uploadBtn.onclick = async () => {
-        status.innerText = "🚀 傳送中...";
-        uploadBtn.disabled = true;
-        const blob = await fetch(audioPlayer.src).then(r => r.blob());
+    document.getElementById('uploadBtn').onclick = async () => {
+        document.getElementById('status').innerText = "上傳中...";
+        const blob = await fetch(document.getElementById('player').src).then(r => r.blob());
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = async () => {
-            const base64Data = reader.result.split(',')[1];
-            try {
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ audio: base64Data, className: document.getElementById('className').value, name: document.getElementById('studentName').value }) });
-                status.innerText = "✅ 已上傳！";
-                uploadBtn.style.display = 'none';
-            } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
+            await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ audio: reader.result.split(',')[1], name: document.getElementById('name').value, className: 'G8' }) });
+            document.getElementById('status').innerText = "✅ 上傳成功！";
+            document.getElementById('uploadBtn').style.display = 'none';
         };
     };
 </script>
