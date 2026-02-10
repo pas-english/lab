@@ -106,4 +106,72 @@
         try {
             status.style.color = "#2d3748";
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            dest = audioContext.create
+            dest = audioContext.createMediaStreamDestination();
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micSource = audioContext.createMediaStreamSource(micStream);
+            micSource.connect(dest);
+            teacherSource = audioContext.createMediaElementSource(teacherAudio);
+            teacherSource.connect(dest);
+            teacherSource.connect(audioContext.destination);
+
+            recorder = new MediaRecorder(dest.stream);
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                audioPlayer.src = URL.createObjectURL(blob);
+                audioPlayer.style.display = 'block';
+                uploadBtn.style.display = 'block';
+                status.innerText = "🎉 太棒了！錄完囉，請按 Send 上傳。";
+            };
+
+            chunks = [];
+            teacherAudio.play();
+            recorder.start();
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            status.innerText = "🔴 正在錄音中，加油！跟著老師讀...";
+        } catch (err) { 
+            status.innerText = "❌ 麥克風存取失敗，請允許權限。";
+        }
+    };
+
+    stopBtn.onclick = () => {
+        recorder.stop();
+        teacherAudio.pause(); teacherAudio.currentTime = 0;
+        audioContext.close();
+        startBtn.disabled = false; stopBtn.disabled = true;
+    };
+
+    uploadBtn.onclick = async () => {
+        const name = studentNameInput.value.trim();
+        const selClass = document.getElementById('className').value;
+        status.innerText = "🚀 上傳中...";
+        uploadBtn.disabled = true;
+        
+        const blob = await fetch(audioPlayer.src).then(r => r.blob());
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = async () => {
+            const base64Data = reader.result.split(',')[1];
+            try {
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        audio: base64Data,
+                        className: selClass,
+                        name: name + "_" + new Date().getTime()
+                    })
+                });
+                status.innerText = "✅ 上傳成功！";
+                uploadBtn.style.display = 'none';
+            } catch (e) { 
+                status.innerText = "❌ 上傳失敗，請重試。";
+                uploadBtn.disabled = false;
+            }
+        };
+    };
+</script>
+
+</body>
+</html>
