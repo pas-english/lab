@@ -12,7 +12,6 @@
         #mediaContainer img { width: 100%; height: auto; border: 2px solid #e2e8f0; border-radius: 10px; display: block; }
         .reading-text { background: #fff; border: 2px solid #e2e8f0; padding: 20px; border-radius: 15px; margin: 15px 0; text-align: left; line-height: 1.7; font-size: 19px; color: #2d3748; min-height: 60px; white-space: pre-wrap; }
         .input-group { margin-bottom: 15px; text-align: left; display: flex; gap: 10px; flex-wrap: wrap; }
-        .input-item { flex: 1; min-width: 140px; }
         input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; background: #f8fafc; box-sizing: border-box; }
         .btn { padding: 18px; font-size: 18px; margin: 8px 0; cursor: pointer; border-radius: 12px; border: none; font-weight: bold; width: 100%; transition: 0.3s; }
         #startBtn { background: #e53e3e; color: white; }
@@ -27,64 +26,35 @@
 <body>
 
 <div class="classroom">
-    <h1 id="lessonTitle">🏫 Jackie's Classroom</h1>
-    <p style="color: #718096; margin: 5px 0 20px 0; font-weight: bold;">English Echoing Lab</p>
-
-    <div class="how-to-play">
-        <b>💡 練習步驟：</b><br>
-        1. 輸入姓名。 2. 按 <b>Start</b> 聽老師讀。 3. 在空白處模仿。 4. 讀完按 <b>Stop</b>。 5. 按 <b>Send</b>。
-    </div>
-
+    <h1 id="lessonTitle">Jackie's Reading Lab</h1>
     <div id="mediaContainer"></div>
-
     <div class="input-group">
-        <div class="input-item">
-            <select id="className">
-                <option value="General">-- 班級 --</option>
-                <option value="1A">1A</option><option value="G7">G7</option><option value="G8">G8</option>
-            </select>
-        </div>
-        <div class="input-item">
-            <input type="text" id="studentName" placeholder="學生姓名">
-        </div>
+        <select id="className" style="margin-bottom:10px;"><option value="General">-- 班級 --</option><option value="1A">1A</option><option value="G7">G7</option><option value="G8">G8</option></select>
+        <input type="text" id="studentName" placeholder="學生姓名">
     </div>
-
-    <div class="reading-text" id="lessonText">正在同步雲端資料...</div>
-
+    <div class="reading-text" id="lessonText">教材載入中...</div>
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous"></audio>
-
     <button id="startBtn" class="btn">🔴 Start Reading</button>
     <button id="stopBtn" class="btn" disabled>⏹️ Stop</button>
-    
     <div id="status" class="status">Ready</div>
-    
-    <div id="playerContainer">
-        <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold;">🎧 試聽你的錄音：</p>
-        <audio id="audioPlayer" controls style="width: 100%;"></audio>
-    </div>
-    
-    <button id="uploadBtn" class="btn" style="display: none;">📤 Send to Jackie</button>
+    <div id="playerContainer"><p style="margin:10px 0; font-weight:bold;">🎧 試聽錄音：</p><audio id="audioPlayer" controls style="width:100%;"></audio></div>
+    <button id="uploadBtn" class="btn" style="display:none;">📤 Send to Jackie</button>
 </div>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
 
     function handleResponse(data) {
-        document.getElementById('lessonTitle').innerText = data.title || "Echoing Practice";
-        document.getElementById('lessonText').innerText = data.text || "目前沒有課文內容";
-        
+        document.getElementById('lessonTitle').innerText = data.title;
+        document.getElementById('lessonText').innerText = data.text;
         const teacherAudio = document.getElementById('teacherAudio');
-        if (data.audio) {
-            teacherAudio.src = data.audio;
-            teacherAudio.load();
-        }
+        teacherAudio.src = data.audio;
+        teacherAudio.load();
         
         const container = document.getElementById('mediaContainer');
-        if (data.media_url && data.media_url.trim() !== "") {
-            container.innerHTML = `<img src="${data.media_url}" crossorigin="anonymous" alt="Book Image">`;
+        if (data.media_url) {
+            container.innerHTML = `<img src="${data.media_url}" crossorigin="anonymous" alt="Image">`;
             container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
         }
     }
 
@@ -93,17 +63,10 @@
     document.body.appendChild(script);
 
     let recorder, chunks = [], activeStream;
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const teacherAudio = document.getElementById('teacherAudio');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const status = document.getElementById('status');
+    const startBtn = document.getElementById('startBtn'), stopBtn = document.getElementById('stopBtn'), uploadBtn = document.getElementById('uploadBtn'), teacherAudio = document.getElementById('teacherAudio'), audioPlayer = document.getElementById('audioPlayer'), status = document.getElementById('status');
 
     startBtn.onclick = async () => {
         if (!document.getElementById('studentName').value.trim()) { alert("請輸入姓名！"); return; }
-        if (!teacherAudio.src) { alert("教材音檔尚未就緒，請重新整理網頁。"); return; }
-        
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             activeStream = stream;
@@ -122,16 +85,15 @@
                 audioPlayer.src = URL.createObjectURL(blob);
                 document.getElementById('playerContainer').style.display = 'block';
                 uploadBtn.style.display = 'block';
-                status.innerText = "錄音完成！可試聽。";
+                status.innerText = "錄音完成！";
                 activeStream.getTracks().forEach(track => track.stop());
             };
-            
             chunks = [];
             teacherAudio.play();
             recorder.start();
             startBtn.disabled = true; stopBtn.disabled = false;
-            status.innerText = "🔴 正在錄音中...";
-        } catch (err) { alert("無法存取麥克風。請確認：1. 網址是 https 開頭 2. 已允許權限。"); }
+            status.innerText = "🔴 錄製中...";
+        } catch (err) { alert("麥克風開啟失敗。"); }
     };
 
     stopBtn.onclick = () => {
@@ -149,21 +111,10 @@
         reader.onloadend = async () => {
             const base64Data = reader.result.split(',')[1];
             try {
-                await fetch(GAS_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({
-                        audio: base64Data,
-                        className: document.getElementById('className').value,
-                        name: document.getElementById('studentName').value
-                    })
-                });
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ audio: base64Data, className: document.getElementById('className').value, name: document.getElementById('studentName').value }) });
                 status.innerText = "✅ 已上傳！";
                 uploadBtn.style.display = 'none';
-            } catch (e) { 
-                status.innerText = "❌ 失敗，請重試"; 
-                uploadBtn.disabled = false; 
-            }
+            } catch (e) { status.innerText = "❌ 失敗"; uploadBtn.disabled = false; }
         };
     };
 </script>
