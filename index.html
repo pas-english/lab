@@ -67,15 +67,15 @@
 </div>
 
 <script>
-    // 確定的 GAS 網址，無空格
+    // 確定的 GAS 網址
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
 
     let recorder, chunks = [], activeStream;
 
+    // 核心修正：加入 redirect: 'follow' 解決 Google 轉址問題
     async function loadLesson() {
         try {
-            // 強制清除快取請求
-            const res = await fetch(GAS_URL + '?t=' + new Date().getTime());
+            const res = await fetch(GAS_URL, { redirect: 'follow' });
             const data = await res.json();
             
             document.getElementById('lessonTitle').innerText = data.title || "Echoing Practice";
@@ -91,7 +91,7 @@
             }
         } catch (e) {
             console.error(e);
-            document.getElementById('lessonText').innerText = "連線失敗。請嘗試：1. 使用無痕視窗。2. 檢查網路。";
+            document.getElementById('lessonText').innerText = "連線失敗。請嘗試：1. 使用無痕視窗。2. 檢查試算表權限。";
         }
     }
     loadLesson();
@@ -112,6 +112,8 @@
             const dest = audioCtx.createMediaStreamDestination();
             const micSource = audioCtx.createMediaStreamSource(stream);
             micSource.connect(dest);
+            
+            // 處理跨來源音訊
             const teacherSource = audioCtx.createMediaElementSource(teacherAudio);
             teacherSource.connect(dest);
             teacherSource.connect(audioCtx.destination);
