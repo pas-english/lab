@@ -5,15 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Jackie's Recording Studio</title>
     <style>
-        :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
+        :root { --primary: #00ff88; --gold: #fcc419; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
         body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
         
-        .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 600px; width: 100%; text-align: center; border: 1px solid #333; }
+        .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 600px; width: 100%; text-align: center; border: 1px solid #333; position: relative; }
         
         .media-box { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 20px; border: 2px solid #3d4451; background: #000; }
         .media-box img { width: 100%; display: block; opacity: 0.9; }
 
-        /* 專業波形顯示區 */
+        /* 中文操作指引區 */
+        .how-to-play { 
+            background: rgba(252, 196, 25, 0.1); border-left: 4px solid var(--gold); 
+            padding: 15px; margin-bottom: 20px; border-radius: 8px; 
+            text-align: left; font-size: 14px; color: #ddd; line-height: 1.6;
+        }
+        .how-to-play b { color: var(--gold); }
+
         .visualizer-container { 
             background: #000; height: 100px; width: 100%; border-radius: 12px; margin-bottom: 20px; 
             position: relative; border: 1px solid var(--primary); overflow: hidden;
@@ -23,7 +30,6 @@
         .reading-text { 
             background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; 
             text-align: left; font-size: 19px; line-height: 1.8; color: #fff; margin-bottom: 20px;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
         }
 
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -31,7 +37,6 @@
             flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; 
             background: #1a1d23; color: #fff; font-size: 16px; outline: none;
         }
-        select:focus, input:focus { border-color: var(--primary); }
 
         .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .btn { 
@@ -40,33 +45,39 @@
         }
         
         #startBtn { background: #e53e3e; color: #fff; }
-        #startBtn:hover { background: #ff4d4d; box-shadow: 0 0 15px rgba(229, 62, 62, 0.4); }
         #stopBtn { background: #4a5568; color: #fff; }
         #uploadBtn { background: var(--primary); color: #000; grid-column: span 2; display: none; margin-top: 10px; }
         
-        .status-bar { margin-top: 15px; font-size: 14px; color: var(--primary); letter-spacing: 1px; }
-        audio { width: 100%; margin-top: 15px; filter: invert(100%) hue-rotate(180deg); opacity: 0.7; }
-        
-        #playerLabel { text-align: left; font-size: 14px; margin: 15px 0 5px; color: #888; display: none; }
+        .status-bar { margin-top: 15px; font-size: 15px; color: var(--primary); font-weight: bold; }
+        audio { width: 100%; margin-top: 15px; filter: invert(100%) opacity: 0.7; }
+        #playerLabel { text-align: left; font-size: 14px; margin: 15px 0 5px; color: var(--gold); display: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="studio-container">
-    <h1 style="margin:0; font-size: 24px; color: var(--primary);">STUDIO MODE</h1>
-    <p style="color: #888; margin: 5px 0 20px 0; font-size: 12px; text-transform: uppercase;">Jackie's English Reading Lab</p>
+    <h1 style="margin:0; font-size: 24px; color: var(--primary);">JACKIE'S AUDIO LAB</h1>
+    <p style="color: #888; margin: 5px 0 20px 0; font-size: 12px;">專業聽讀訓練系統</p>
 
     <div class="media-box">
         <img src="https://docs.google.com/uc?export=download&id=1CpQ-jRVCk14qqb5F8gN4LeAckx2ybBhe">
     </div>
 
+    <div class="how-to-play">
+        <b>💡 操作流程 (Instructions)：</b><br>
+        1. 選擇班級並輸入姓名。<br>
+        2. 按 <b>START</b> 開始，請跟著老師的聲音同步朗讀。<br>
+        3. 結束後按 <b>STOP</b> 停止錄音。<br>
+        4. 最後按 <b>SEND</b> 傳送給老師，看到「成功」才算完成。
+    </div>
+
     <div class="input-group">
         <select id="className">
-            <option value="G8">CLASS G8</option>
-            <option value="G7">CLASS G7</option>
-            <option value="G9">CLASS G9</option>
+            <option value="G8">班級：G8</option>
+            <option value="G7">班級：G7</option>
+            <option value="G9">班級：G9</option>
         </select>
-        <input type="text" id="studentName" placeholder="STUDENT NAME">
+        <input type="text" id="studentName" placeholder="請輸入學生姓名">
     </div>
 
     <div class="visualizer-container">
@@ -80,14 +91,14 @@
     <audio id="teacherAudio" src="https://res.cloudinary.com/dswvflav6/video/upload/v1770704169/ch3_shadowing_spwfot.mp3" preload="auto" crossorigin="anonymous"></audio>
 
     <div class="btn-box">
-        <button id="startBtn" class="btn">⏺ START</button>
-        <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
-        <button id="uploadBtn" class="btn">📤 SEND TO JACKIE</button>
+        <button id="startBtn" class="btn">🔴 START 開始錄音</button>
+        <button id="stopBtn" class="btn" disabled>⏹ STOP 停止</button>
+        <button id="uploadBtn" class="btn">📤 SEND 傳送給 Jackie 老師</button>
     </div>
     
-    <p id="status" class="status-bar">SYSTEM READY</p>
+    <p id="status" class="status-bar">READY / 準備就緒</p>
     
-    <div id="playerLabel">PREVIEW RECORDING:</div>
+    <div id="playerLabel">🎧 試聽你的錄音 (Preview)：</div>
     <audio id="audioPlayer" controls style="display: none;"></audio>
 </div>
 
@@ -95,17 +106,15 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
 
     let recorder, chunks = [], audioContext, dest, teacherSource, activeStream, analyser, dataArray, animationId;
-    
     const canvas = document.getElementById('visualizer');
     const canvasCtx = canvas.getContext('2d');
 
-    // 繪製波形圖
     function draw() {
         animationId = requestAnimationFrame(draw);
         analyser.getByteTimeDomainData(dataArray);
         canvasCtx.fillStyle = '#000';
         canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-        canvasCtx.lineWidth = 2;
+        canvasCtx.lineWidth = 3;
         canvasCtx.strokeStyle = '#00ff88';
         canvasCtx.beginPath();
         let sliceWidth = canvas.width * 1.0 / analyser.frequencyBinCount;
@@ -122,20 +131,19 @@
     }
 
     document.getElementById('startBtn').onclick = async () => {
-        if (!document.getElementById('studentName').value.trim()) return alert("PLEASE ENTER YOUR NAME");
+        if (!document.getElementById('studentName').value.trim()) return alert("請先輸入姓名！");
         
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             dest = audioContext.createMediaStreamDestination();
             activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
-            // 設定分析儀 (做波形圖用)
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 2048;
             dataArray = new Uint8Array(analyser.frequencyBinCount);
             
             const micSource = audioContext.createMediaStreamSource(activeStream);
-            micSource.connect(analyser); // 接到分析儀
+            micSource.connect(analyser);
             micSource.connect(dest);
             
             const teacherAudio = document.getElementById('teacherAudio');
@@ -152,19 +160,19 @@
                 player.style.display = 'block';
                 document.getElementById('playerLabel').style.display = 'block';
                 document.getElementById('uploadBtn').style.display = 'flex';
-                document.getElementById('status').innerText = "RECORDING FINISHED";
+                document.getElementById('status').innerText = "錄音完成，請試聽或傳送。";
                 cancelAnimationFrame(animationId);
             };
 
             chunks = [];
             teacherAudio.play();
             recorder.start();
-            draw(); // 開始畫圖
+            draw();
             
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
-            document.getElementById('status').innerText = "● RECORDING IN PROGRESS";
-        } catch (err) { alert("Mic Error!"); }
+            document.getElementById('status').innerText = "🔴 錄音中，請跟著老師朗讀...";
+        } catch (err) { alert("無法開啟麥克風，請檢查瀏覽器授權！"); }
     };
 
     document.getElementById('stopBtn').onclick = () => {
@@ -177,7 +185,7 @@
     };
 
     document.getElementById('uploadBtn').onclick = async () => {
-        document.getElementById('status').innerText = "UPLOADING TO CLOUD...";
+        document.getElementById('status').innerText = "🚀 檔案上傳中，請稍候...";
         document.getElementById('uploadBtn').disabled = true;
         const blob = await fetch(document.getElementById('audioPlayer').src).then(r => r.blob());
         const reader = new FileReader();
@@ -193,7 +201,7 @@
                     name: document.getElementById('studentName').value
                 })
             });
-            document.getElementById('status').innerText = "MISSION ACCOMPLISHED!";
+            document.getElementById('status').innerText = "✅ 上傳成功！Jackie 老師已收到。";
             document.getElementById('uploadBtn').style.display = 'none';
         };
     };
