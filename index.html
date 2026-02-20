@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jackie's Recording Studio</title>
+    <title>Jackie's Audio Lab</title>
     <style>
         :root { --primary: #00ff88; --gold: #fcc419; --info: #00d4ff; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
         body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -15,10 +15,10 @@
         .media-box { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 20px; border: 2px solid #3d4451; background: #000; }
         .media-box img { width: 100%; display: block; opacity: 0.9; }
         .visualizer-container { background: #000; height: 80px; width: 100%; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--primary); overflow: hidden; }
-        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 19px; line-height: 1.8; color: #fff; margin-bottom: 20px; }
+        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 19px; line-height: 1.8; color: #fff; margin-bottom: 20px; word-break: break-word; }
         .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .input-row { display: flex; gap: 10px; }
-        input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; outline: none; }
+        input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; outline: none; -webkit-appearance: none; }
         select#micSelect { border-color: var(--info); color: var(--info); font-size: 14px; }
         .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -46,11 +46,10 @@
     </div>
 
     <div class="info-section how-to-play">
-        <div class="section-title title-gold">💡 操作流程 (Instructions)</div>
-        1. 選班級、姓名並確認<b>麥克風選單</b>。<br>
-        2. 按 <b>START</b> 開始，請跟著老師聲音同步朗讀。<br>
-        3. 結束後按 <b>STOP</b> 停止錄音。<br>
-        4. 最後按 <b>SEND</b> 傳送，看到「成功」才算完成。
+        <div class="section-title title-gold">💡 設備相容指引</div>
+        • <b>Windows/Android：</b>請用 <b>Chrome</b>。<br>
+        • <b>iPhone/iPad/Mac：</b>必須用 <b>Safari</b>。<br>
+        • <b>注意：</b>請勿用 LINE 打開，請複製網址到瀏覽器。
     </div>
 
     <div class="input-group">
@@ -60,7 +59,7 @@
                 <option value="G7">班級：G7</option>
                 <option value="G9">班級：G9</option>
             </select>
-            <input type="text" id="studentName" placeholder="請輸入學生姓名">
+            <input type="text" id="studentName" placeholder="輸入姓名">
         </div>
         <select id="micSelect"><option value="">正在偵測麥克風...</option></select>
     </div>
@@ -71,17 +70,17 @@
         The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape. They held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.
     </div>
 
-    <audio id="teacherAudio" src="./5 children and it - ch2 shadowing.mp3" preload="auto" crossorigin="anonymous"></audio>
+    <audio id="teacherAudio" src="./5 children and it - ch2 shadowing.mp3" preload="auto" crossorigin="anonymous" playsinline></audio>
 
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START 開始錄音</button>
         <button id="stopBtn" class="btn" disabled>⏹ STOP 停止</button>
-        <button id="uploadBtn" class="btn">📤 SEND 傳送給 Jackie 老師</button>
+        <button id="uploadBtn" class="btn">📤 SEND 傳送給老師</button>
     </div>
     
     <p id="status" class="status-bar">READY / 準備就緒</p>
-    <div id="playerLabel">🎧 試聽你的錄音 (Preview)：</div>
-    <audio id="audioPlayer" controls style="display: none;"></audio>
+    <div id="playerLabel">🎧 試聽錄音 (Preview)：</div>
+    <audio id="audioPlayer" controls style="display: none;" playsinline></audio>
 </div><script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
     let recorder, chunks = [], audioContext, dest, teacherSource, activeStream, analyser, dataArray, animationId;
@@ -89,15 +88,14 @@
     const canvasCtx = canvas.getContext('2d');
     const micSelect = document.getElementById('micSelect');
 
-    // 💡 自動偵測麥克風列表
     async function getMicrophones() {
         try {
-            await navigator.mediaDevices.getUserMedia({ audio: true }); // 先獲取權限才能讀取名稱
+            await navigator.mediaDevices.getUserMedia({ audio: true });
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioInputs = devices.filter(device => device.kind === 'audioinput');
-            micSelect.innerHTML = audioInputs.map(device => `<option value="${device.deviceId}">${device.label || '未知麥克風'}</option>`).join('');
+            micSelect.innerHTML = audioInputs.map(device => `<option value="${device.deviceId}">${device.label || '預設麥克風'}</option>`).join('');
         } catch (err) {
-            micSelect.innerHTML = '<option value="">無法讀取麥克風，請檢查權限</option>';
+            micSelect.innerHTML = '<option value="">請點擊 START 授權麥克風</option>';
         }
     }
     getMicrophones();
@@ -118,12 +116,11 @@
     document.getElementById('startBtn').onclick = async () => {
         if (!document.getElementById('studentName').value.trim()) return alert("請先輸入姓名！");
         try {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'suspended') await audioContext.resume();
+
             dest = audioContext.createMediaStreamDestination();
-            
-            // 💡 使用選定的麥克風 ID
-            const selectedMicId = micSelect.value;
-            const constraints = { audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true };
+            const constraints = { audio: micSelect.value ? { deviceId: { exact: micSelect.value } } : true };
             activeStream = await navigator.mediaDevices.getUserMedia(constraints);
             
             analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
@@ -133,21 +130,25 @@
             const teacherAudio = document.getElementById('teacherAudio');
             teacherSource = audioContext.createMediaElementSource(teacherAudio);
             teacherSource.connect(dest); teacherSource.connect(audioContext.destination);
-            recorder = new MediaRecorder(dest.stream);
-            recorder.ondataavailable = e => chunks.push(e.data);
+            
+            // 💡 全平台相容格式判斷
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+            recorder = new MediaRecorder(dest.stream, { mimeType });
+            
+            recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
             recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
+                const blob = new Blob(chunks, { type: mimeType });
                 document.getElementById('audioPlayer').src = URL.createObjectURL(blob);
                 document.getElementById('audioPlayer').style.display = 'block';
                 document.getElementById('playerLabel').style.display = 'block';
                 document.getElementById('uploadBtn').style.display = 'flex';
-                document.getElementById('status').innerText = "錄音完成，請試聽或傳送。";
+                document.getElementById('status').innerText = "錄音完成！";
                 cancelAnimationFrame(animationId);
             };
             chunks = []; teacherAudio.play(); recorder.start(); draw();
             document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
-            document.getElementById('status').innerText = "🔴 錄音中，請跟著老師朗讀...";
-        } catch (err) { alert("開啟麥克風失敗！請確認設備是否被其他程式佔用。"); }
+            document.getElementById('status').innerText = "🔴 錄音中...";
+        } catch (err) { alert("開啟失敗！請確保使用 Safari (iOS) 或 Chrome (其他) 並允許麥克風權限。"); }
     };
 
     document.getElementById('stopBtn').onclick = () => {
@@ -158,7 +159,7 @@
     };
 
     document.getElementById('uploadBtn').onclick = async () => {
-        document.getElementById('status').innerText = "🚀 檔案上傳中...";
+        document.getElementById('status').innerText = "🚀 傳送中...";
         document.getElementById('uploadBtn').disabled = true;
         const blob = await fetch(document.getElementById('audioPlayer').src).then(r => r.blob());
         const reader = new FileReader(); reader.readAsDataURL(blob);
@@ -167,7 +168,7 @@
             await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({
                 audio: base64, className: document.getElementById('className').value, name: document.getElementById('studentName').value
             })});
-            document.getElementById('status').innerText = "✅ 上傳成功！Jackie 老師已收到。";
+            document.getElementById('status').innerText = "✅ 成功！Jackie 老師已收到。";
             document.getElementById('uploadBtn').style.display = 'none';
         };
     };</script></body></html>
