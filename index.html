@@ -6,21 +6,20 @@
         :root { --primary: #00ff88; --gold: #fcc419; --info: #00d4ff; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
         body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
         .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 600px; width: 100%; text-align: center; border: 1px solid #333; }
-        
         .info-section { text-align: left; border-radius: 12px; padding: 15px; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
         .how-to-play { background: rgba(252, 196, 25, 0.1); border-left: 4px solid var(--gold); color: #ddd; }
         .exercise-guide { background: rgba(0, 212, 255, 0.1); border-left: 4px solid var(--info); color: #ddd; }
-        
         .section-title { font-weight: bold; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
         .title-gold { color: var(--gold); }
         .title-info { color: var(--info); }
-
         .media-box { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 20px; border: 2px solid #3d4451; background: #000; }
         .media-box img { width: 100%; display: block; opacity: 0.9; }
         .visualizer-container { background: #000; height: 80px; width: 100%; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--primary); overflow: hidden; }
         .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 19px; line-height: 1.8; color: #fff; margin-bottom: 20px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .input-row { display: flex; gap: 10px; }
         input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; outline: none; }
+        select#micSelect { border-color: var(--info); color: var(--info); font-size: 14px; }
         .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
         #startBtn { background: #e53e3e; color: #fff; }
@@ -48,19 +47,22 @@
 
     <div class="info-section how-to-play">
         <div class="section-title title-gold">💡 操作流程 (Instructions)</div>
-        1. 選擇班級並輸入姓名。<br>
+        1. 選班級、姓名並確認<b>麥克風選單</b>。<br>
         2. 按 <b>START</b> 開始，請跟著老師聲音同步朗讀。<br>
         3. 結束後按 <b>STOP</b> 停止錄音。<br>
         4. 最後按 <b>SEND</b> 傳送，看到「成功」才算完成。
     </div>
 
     <div class="input-group">
-        <select id="className">
-            <option value="G8">班級：G8</option>
-            <option value="G7">班級：G7</option>
-            <option value="G9">班級：G9</option>
-        </select>
-        <input type="text" id="studentName" placeholder="請輸入學生姓名">
+        <div class="input-row">
+            <select id="className">
+                <option value="G8">班級：G8</option>
+                <option value="G7">班級：G7</option>
+                <option value="G9">班級：G9</option>
+            </select>
+            <input type="text" id="studentName" placeholder="請輸入學生姓名">
+        </div>
+        <select id="micSelect"><option value="">正在偵測麥克風...</option></select>
     </div>
 
     <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
@@ -85,6 +87,21 @@
     let recorder, chunks = [], audioContext, dest, teacherSource, activeStream, analyser, dataArray, animationId;
     const canvas = document.getElementById('visualizer');
     const canvasCtx = canvas.getContext('2d');
+    const micSelect = document.getElementById('micSelect');
+
+    // 💡 自動偵測麥克風列表
+    async function getMicrophones() {
+        try {
+            await navigator.mediaDevices.getUserMedia({ audio: true }); // 先獲取權限才能讀取名稱
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioInputs = devices.filter(device => device.kind === 'audioinput');
+            micSelect.innerHTML = audioInputs.map(device => `<option value="${device.deviceId}">${device.label || '未知麥克風'}</option>`).join('');
+        } catch (err) {
+            micSelect.innerHTML = '<option value="">無法讀取麥克風，請檢查權限</option>';
+        }
+    }
+    getMicrophones();
+
     function draw() {
         animationId = requestAnimationFrame(draw);
         analyser.getByteTimeDomainData(dataArray);
@@ -97,12 +114,18 @@
         }
         canvasCtx.lineTo(canvas.width, canvas.height / 2); canvasCtx.stroke();
     }
+
     document.getElementById('startBtn').onclick = async () => {
         if (!document.getElementById('studentName').value.trim()) return alert("請先輸入姓名！");
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             dest = audioContext.createMediaStreamDestination();
-            activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // 💡 使用選定的麥克風 ID
+            const selectedMicId = micSelect.value;
+            const constraints = { audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true };
+            activeStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
             analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
             dataArray = new Uint8Array(analyser.frequencyBinCount);
             const micSource = audioContext.createMediaStreamSource(activeStream);
@@ -124,14 +147,16 @@
             chunks = []; teacherAudio.play(); recorder.start(); draw();
             document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "🔴 錄音中，請跟著老師朗讀...";
-        } catch (err) { alert("無法開啟麥克風，請檢查瀏覽器授權！"); }
+        } catch (err) { alert("開啟麥克風失敗！請確認設備是否被其他程式佔用。"); }
     };
+
     document.getElementById('stopBtn').onclick = () => {
         recorder.stop(); document.getElementById('teacherAudio').pause();
         document.getElementById('teacherAudio').currentTime = 0;
         document.getElementById('startBtn').disabled = false; document.getElementById('stopBtn').disabled = true;
         if (activeStream) activeStream.getTracks().forEach(track => track.stop());
     };
+
     document.getElementById('uploadBtn').onclick = async () => {
         document.getElementById('status').innerText = "🚀 檔案上傳中...";
         document.getElementById('uploadBtn').disabled = true;
