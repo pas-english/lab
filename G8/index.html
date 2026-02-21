@@ -40,18 +40,28 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec"; 
 
     const lessons = {
-        "ch1": { text: "The children loved the house...", audio: "5 children and it - ch1 shadowing.mp3" },
-        "ch2": { text: "The children were angry and unhappy...", audio: "5 children and it - ch2 shadowing.mp3" },
-        "ch3": { text: "The next day was very wet...", audio: "5 children and it - ch3 shadowing.mp3" }
+        "ch1": {
+            text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.",
+            audio: "5 children and it - ch1 shadowing.mp3"
+        },
+        "ch2": {
+            text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape.\n\nThey held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.",
+            audio: "5 children and it - ch2 shadowing.mp3"
+        },
+        "ch3": {
+            text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.",
+            audio: "5 children and it - ch3 shadowing.mp3"
+        }
     };
 
     function switchLesson() {
         const val = document.getElementById('lessonSelect').value;
-        document.getElementById('lessonText').innerText = lessons[val].text;
+        const data = lessons[val];
+        document.getElementById('lessonText').innerText = data.text;
         const tAudio = document.getElementById('teacherAudio');
-        tAudio.src = lessons[val].audio;
+        tAudio.src = data.audio;
         tAudio.load();
-        document.getElementById('status').innerText = "Switched to " + val.toUpperCase();
+        document.getElementById('status').innerText = "Loaded " + val.toUpperCase();
     }
     window.onload = switchLesson;
 
@@ -62,16 +72,15 @@
         if (!name) return alert("Please enter your name!");
         
         try {
+            // 修正 Microphone Error：確保 AudioContext 只初始化一次
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 dest = audioCtx.createMediaStreamDestination();
                 
-                // 麥克風連接
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const micSource = audioCtx.createMediaStreamSource(stream);
                 micSource.connect(dest);
 
-                // 老師音檔連接 (關鍵：只連接一次)
                 const tAudio = document.getElementById('teacherAudio');
                 teacherSource = audioCtx.createMediaElementSource(tAudio);
                 teacherSource.connect(dest);
@@ -130,7 +139,7 @@
                     })
                 });
                 statusEl.innerText = "✅ SENT SUCCESSFULLY!";
-                alert("Upload complete!");
+                alert("Upload Success!");
                 document.getElementById('uploadBtn').style.display = 'none';
             } catch (e) { alert("Upload failed."); }
         };
