@@ -1,174 +1,37 @@
-<!DOCTYPE html><html lang="zh-TW"><head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jackie's Audio Lab</title>
-    <style>
-        :root { --primary: #00ff88; --gold: #fcc419; --info: #00d4ff; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
-        body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 600px; width: 100%; text-align: center; border: 1px solid #333; }
-        .info-section { text-align: left; border-radius: 12px; padding: 15px; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
-        .how-to-play { background: rgba(252, 196, 25, 0.1); border-left: 4px solid var(--gold); color: #ddd; }
-        .exercise-guide { background: rgba(0, 212, 255, 0.1); border-left: 4px solid var(--info); color: #ddd; }
-        .section-title { font-weight: bold; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
-        .title-gold { color: var(--gold); }
-        .title-info { color: var(--info); }
-        .media-box { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 20px; border: 2px solid #3d4451; background: #000; }
-        .media-box img { width: 100%; display: block; opacity: 0.9; }
-        .visualizer-container { background: #000; height: 80px; width: 100%; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--primary); overflow: hidden; }
-        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 19px; line-height: 1.8; color: #fff; margin-bottom: 20px; word-break: break-word; }
-        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        .input-row { display: flex; gap: 10px; }
-        input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; outline: none; -webkit-appearance: none; }
-        select#micSelect { border-color: var(--info); color: var(--info); font-size: 14px; }
-        .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        #startBtn { background: #e53e3e; color: #fff; }
-        #stopBtn { background: #4a5568; color: #fff; }
-        #uploadBtn { background: var(--primary); color: #000; grid-column: span 2; display: none; margin-top: 10px; }
-        .status-bar { margin-top: 15px; font-size: 15px; color: var(--primary); font-weight: bold; }
-        audio { width: 100%; margin-top: 15px; filter: invert(100%); opacity: 0.7; }
-        #playerLabel { text-align: left; font-size: 14px; margin: 15px 0 5px; color: var(--gold); display: none; font-weight: bold; }
-    </style></head><body><div class="studio-container">
-    <h1 style="margin:0; font-size: 24px; color: var(--primary);">JACKIE'S AUDIO LAB</h1>
-    <p style="color: #888; margin: 5px 0 20px 0; font-size: 12px;">專業聽讀訓練系統</p>
-
-    <div class="media-box">
-        <img src="https://docs.google.com/uc?export=download&id=1CpQ-jRVCk14qqb5F8gN4LeAckx2ybBhe">
+<div class="input-group">
+    <div class="input-row">
+        <select id="className" disabled><option value="G7">班級：G7</option></select>
+        <select id="lessonSelect" onchange="switchLesson()">
+            <option value="ch1">Chapter 1</option>
+            <option value="ch2">Chapter 2</option>
+            <option value="ch3">Chapter 3</option>
+        </select>
     </div>
+    <input type="text" id="studentName" placeholder="輸入姓名">
+</div>
 
-    <div class="info-section exercise-guide">
-        <div class="section-title title-info">🎯 Exercise (Shadowing)</div>
-        <ul style="margin: 5px 0; padding-left: 20px;">
-            <li>First, listen to the audio to know how to speak every word.</li>
-            <li>After the discussion, use <b>"shadowing"</b> with the text.</li>
-            <li>Try something harder! Use <b>"shadowing"</b> to read the first paragraph without the text.</li>
-        </ul>
-    </div>
-
-    <div class="info-section how-to-play">
-        <div class="section-title title-gold">💡 設備相容指引</div>
-        • <b>Windows/Android：</b>請用 <b>Chrome</b>。<br>
-        • <b>iPhone/iPad/Mac：</b>必須用 <b>Safari</b>。<br>
-        • <b>注意：</b>請勿用 LINE 打開，請複製網址到瀏覽器。
-    </div>
-
-    <div class="input-group">
-        <div class="input-row">
-            <select id="className">
-                <option value="G8">班級：G8</option>
-                <option value="G7">班級：G7</option>
-                <option value="G9">班級：G9</option>
-            </select>
-            <input type="text" id="studentName" placeholder="輸入姓名">
-        </div>
-        <select id="micSelect"><option value="">正在偵測麥克風...</option></select>
-    </div>
-
-    <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
-
-    <div class="reading-text" id="lessonText">
-        The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape. They held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.
-    </div>
-
-    <audio id="teacherAudio" src="./5 children and it - ch2 shadowing.mp3" preload="auto" crossorigin="anonymous" playsinline></audio>
-
-    <div class="btn-box">
-        <button id="startBtn" class="btn">🔴 START 開始錄音</button>
-        <button id="stopBtn" class="btn" disabled>⏹ STOP 停止</button>
-        <button id="uploadBtn" class="btn">📤 SEND 傳送給老師</button>
-    </div>
-    
-    <p id="status" class="status-bar">READY / 準備就緒</p>
-    <div id="playerLabel">🎧 試聽錄音 (Preview)：</div>
-    <audio id="audioPlayer" controls style="display: none;" playsinline></audio>
-</div><script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
-    let recorder, chunks = [], audioContext, dest, teacherSource, activeStream, analyser, dataArray, animationId;
-    const canvas = document.getElementById('visualizer');
-    const canvasCtx = canvas.getContext('2d');
-    const micSelect = document.getElementById('micSelect');
-
-    async function getMicrophones() {
-        try {
-            await navigator.mediaDevices.getUserMedia({ audio: true });
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioInputs = devices.filter(device => device.kind === 'audioinput');
-            micSelect.innerHTML = audioInputs.map(device => `<option value="${device.deviceId}">${device.label || '預設麥克風'}</option>`).join('');
-        } catch (err) {
-            micSelect.innerHTML = '<option value="">請點擊 START 授權麥克風</option>';
+<script>
+    // 這裡就是您的「小說內容資料庫」
+    const lessons = {
+        "ch1": {
+            text: "The children found a sand-fairy...",
+            audio: "../ch1.mp3",
+            image: "../ch1_img.jpg"
+        },
+        "ch2": {
+            text: "The next morning, they woke up early...",
+            audio: "../ch2.mp3",
+            image: "../ch2_img.jpg"
         }
-    }
-    getMicrophones();
-
-    function draw() {
-        animationId = requestAnimationFrame(draw);
-        analyser.getByteTimeDomainData(dataArray);
-        canvasCtx.fillStyle = '#000'; canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-        canvasCtx.lineWidth = 3; canvasCtx.strokeStyle = '#00ff88'; canvasCtx.beginPath();
-        let sliceWidth = canvas.width * 1.0 / analyser.frequencyBinCount; let x = 0;
-        for(let i = 0; i < analyser.frequencyBinCount; i++) {
-            let v = dataArray[i] / 128.0; let y = v * canvas.height / 2;
-            if(i === 0) canvasCtx.moveTo(x, y); else canvasCtx.lineTo(x, y); x += sliceWidth;
-        }
-        canvasCtx.lineTo(canvas.width, canvas.height / 2); canvasCtx.stroke();
-    }
-
-    document.getElementById('startBtn').onclick = async () => {
-        if (!document.getElementById('studentName').value.trim()) return alert("請先輸入姓名！");
-        try {
-            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioContext.state === 'suspended') await audioContext.resume();
-
-            dest = audioContext.createMediaStreamDestination();
-            const constraints = { audio: micSelect.value ? { deviceId: { exact: micSelect.value } } : true };
-            activeStream = await navigator.mediaDevices.getUserMedia(constraints);
-            
-            analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
-            dataArray = new Uint8Array(analyser.frequencyBinCount);
-            const micSource = audioContext.createMediaStreamSource(activeStream);
-            micSource.connect(analyser); micSource.connect(dest);
-            const teacherAudio = document.getElementById('teacherAudio');
-            teacherSource = audioContext.createMediaElementSource(teacherAudio);
-            teacherSource.connect(dest); teacherSource.connect(audioContext.destination);
-            
-            // 💡 全平台相容格式判斷
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-            recorder = new MediaRecorder(dest.stream, { mimeType });
-            
-            recorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: mimeType });
-                document.getElementById('audioPlayer').src = URL.createObjectURL(blob);
-                document.getElementById('audioPlayer').style.display = 'block';
-                document.getElementById('playerLabel').style.display = 'block';
-                document.getElementById('uploadBtn').style.display = 'flex';
-                document.getElementById('status').innerText = "錄音完成！";
-                cancelAnimationFrame(animationId);
-            };
-            chunks = []; teacherAudio.play(); recorder.start(); draw();
-            document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
-            document.getElementById('status').innerText = "🔴 錄音中...";
-        } catch (err) { alert("開啟失敗！請確保使用 Safari (iOS) 或 Chrome (其他) 並允許麥克風權限。"); }
+        // 以後老師只要一直往下面加 ch3, ch4...
     };
 
-    document.getElementById('stopBtn').onclick = () => {
-        recorder.stop(); document.getElementById('teacherAudio').pause();
-        document.getElementById('teacherAudio').currentTime = 0;
-        document.getElementById('startBtn').disabled = false; document.getElementById('stopBtn').disabled = true;
-        if (activeStream) activeStream.getTracks().forEach(track => track.stop());
-    };
-
-    document.getElementById('uploadBtn').onclick = async () => {
-        document.getElementById('status').innerText = "🚀 傳送中...";
-        document.getElementById('uploadBtn').disabled = true;
-        const blob = await fetch(document.getElementById('audioPlayer').src).then(r => r.blob());
-        const reader = new FileReader(); reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-            const base64 = reader.result.split(',')[1];
-            await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({
-                audio: base64, className: document.getElementById('className').value, name: document.getElementById('studentName').value
-            })});
-            document.getElementById('status').innerText = "✅ 成功！Jackie 老師已收到。";
-            document.getElementById('uploadBtn').style.display = 'none';
-        };
-    };</script></body></html>
+    function switchLesson() {
+        const selected = document.getElementById('lessonSelect').value;
+        const data = lessons[selected];
+        document.getElementById('lessonText').innerText = data.text;
+        document.getElementById('teacherAudio').src = data.audio;
+        document.querySelector('.media-box img').src = data.image;
+        document.getElementById('status').innerText = "已切換至 " + selected;
+    }
+</script>
