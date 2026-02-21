@@ -50,7 +50,7 @@
     const lessons = {
         "ch1": { 
             text: "'Let's have some whisky,' old Mr. White said. 'You need something to warm you on a cold night.' He got out a bottle of whisky and the two old friends began to drink and talk. The little family listened with interest to this visitor from far away and he told them many strange stories.", 
-            audio: "shadowing 1.3.mp3" // 請確保 GitHub 上的檔名與此一致
+            audio: "shadowing 1.3.mp3" 
         },
         "ch2": { 
             text: "This monkey's paw can do strange and wonderful things. An old Indian gave the paw to one of my friends. My friend was a soldier, too. This paw is magic because it can give three wishes to three people. But these three wishes don’t bring happiness. The old Indian wanted to teach us something - it’s never good to want to change things.", 
@@ -99,6 +99,7 @@
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
+        const teacherAudio = document.getElementById('teacherAudio'); // 定義變數防止報錯
         try {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -107,8 +108,7 @@
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const micSource = audioCtx.createMediaStreamSource(stream);
                 micSource.connect(analyser); micSource.connect(dest);
-                const tAudio = document.getElementById('teacherAudio');
-                const tSource = audioCtx.createMediaElementSource(tAudio);
+                const tSource = audioCtx.createMediaElementSource(teacherAudio);
                 tSource.connect(dest); tSource.connect(audioCtx.destination);
             }
             if (audioCtx.state === 'suspended') await audioCtx.resume();
@@ -121,7 +121,10 @@
                 document.getElementById('audioPlayer').style.display = 'block';
                 document.getElementById('uploadBtn').style.display = 'block';
             };
-            chunks = []; tAudio.currentTime = 0; tAudio.play(); recorder.start();
+            chunks = []; 
+            teacherAudio.currentTime = 0; // 修正處：使用正確變數名
+            teacherAudio.play(); 
+            recorder.start();
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
@@ -129,8 +132,9 @@
     };
 
     document.getElementById('stopBtn').onclick = () => {
+        const teacherAudio = document.getElementById('teacherAudio');
         if(recorder) recorder.stop();
-        document.getElementById('teacherAudio').pause();
+        teacherAudio.pause();
         cancelAnimationFrame(animationId);
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
