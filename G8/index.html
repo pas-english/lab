@@ -6,7 +6,7 @@
         body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
         .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 550px; width: 100%; text-align: center; border: 1px solid #333; }
         .admin-title-display { background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,255,136,0) 100%); border-left: 5px solid var(--primary); color: var(--primary); padding: 15px; border-radius: 8px; font-weight: bold; font-size: 22px; margin-bottom: 20px; text-align: left; }
-        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; }
+        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; word-break: break-word; }
         .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
         input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
         .visualizer-container { background: #111; border-radius: 12px; height: 80px; margin-bottom: 15px; border: 1px solid #333; overflow: hidden; }
@@ -21,7 +21,11 @@
     <h2 style="margin:0 0 5px 0; font-size: 10px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB</h2>
     <div class="admin-title-display" id="mainTitle"></div>
     <div class="input-row">
-        <select id="lessonSelect" onchange="switchLesson()"><option value="ch1">Chapter 1</option><option value="ch3">Chapter 3</option><option value="ch5">Chapter 5</option></select>
+        <select id="lessonSelect" onchange="switchLesson()">
+            <option value="ch1">Chapter 1</option>
+            <option value="ch2">Chapter 2</option>
+            <option value="ch3">Chapter 3</option>
+        </select>
         <input type="text" id="studentName" placeholder="Name">
     </div>
     <div id="lessonText" class="reading-text"></div>
@@ -35,21 +39,20 @@
     <p id="status" class="status-bar">READY</p>
     <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;" playsinline></audio>
 </div><script>
-    const CLASS_NAME = "G8", BOOK_TITLE = "Five Children and It", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
+    const CLASS_NAME = "G8", BOOK_TITLE = "5 Children and It", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
     
-    // ⚠️ 請核對下方的音檔名稱 (audio) 是否與 GitHub 上的檔案完全一致
     const lessons = {
         "ch1": { 
-            text: "The children were very excited. They were at their new house in the country. It was beautiful. There were trees and flowers everywhere. They wanted to explore and find something interesting. Suddenly, they saw something moving in the sand. It was a Psammead!", 
-            audio: "5 children and it - ch1 shadowing.mp3" 
+            text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.", 
+            audio: "ch1 shadowing.mp3" 
+        },
+        "ch2": { 
+            text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape. They held their heads down because they did not want anyone to see them, and suddenly Rober ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.", 
+            audio: "ch2 shadowing.mp3" 
         },
         "ch3": { 
-            text: "For their next wish, the children wanted to be very beautiful. But when the wish came true, they didn't recognize each other. They were so beautiful that the servants wouldn't let them into the house! They had to sit outside all day and wait for the wish to end.", 
-            audio: "5 children and it - ch3 shadowing.mp3" 
-        },
-        "ch5": { 
-            text: "Anthea and Jane were looking for the Psammead. They wanted to make one last wish. They were worried because the wishes always went wrong. But they needed to help their brother. They found the Psammead near the sand pit. It looked tired but it was ready to listen.", 
-            audio: "5 children and it - ch5 shadowing.mp3" 
+            text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.", 
+            audio: "ch3 shadowing.mp3" 
         }
     };
 
@@ -57,7 +60,9 @@
     function switchLesson() {
         const val = document.getElementById('lessonSelect').value;
         document.getElementById('lessonText').innerText = lessons[val].text;
-        document.getElementById('teacherAudio').src = lessons[val].audio;
+        const tAudio = document.getElementById('teacherAudio');
+        tAudio.src = lessons[val].audio;
+        tAudio.load();
     }
     window.onload = switchLesson;
     
