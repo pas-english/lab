@@ -28,8 +28,7 @@
         <input type="text" id="studentName" placeholder="Enter Your Name">
     </div>
 
-    <div class="reading-text" id="lessonText"></div>
-    
+    <div id="lessonText" class="reading-text"></div>
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous" playsinline></audio>
 
     <div class="btn-box">
@@ -64,7 +63,6 @@
         const val = document.getElementById('lessonSelect').value;
         const data = lessons[val];
         document.getElementById('lessonText').innerText = data.text;
-        
         const tAudio = document.getElementById('teacherAudio');
         tAudio.src = data.audio;
         tAudio.load();
@@ -78,7 +76,6 @@
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
-        
         try {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             dest = audioCtx.createMediaStreamDestination();
@@ -99,18 +96,14 @@
                 document.getElementById('audioPlayer').style.display = 'block';
                 document.getElementById('uploadBtn').style.display = 'block';
             };
-
             chunks = [];
             tAudio.currentTime = 0;
             tAudio.play();
             recorder.start();
-            
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "🔴 RECORDING...";
-        } catch (err) {
-            alert("Microphone error: " + err);
-        }
+        } catch (err) { alert("Microphone error: " + err); }
     };
 
     document.getElementById('stopBtn').onclick = () => {
@@ -140,9 +133,7 @@
                     })
                 });
                 document.getElementById('status').innerText = "✅ SENT SUCCESSFULLY!";
-            } catch (e) {
-                alert("Upload failed.");
-            }
+            } catch (e) { alert("Upload failed."); }
         };
     };
 </script></body></html>
