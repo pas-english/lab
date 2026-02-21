@@ -45,18 +45,17 @@
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
 
-    // 設定課文與音檔路徑 (../ 代表在 G8 資料夾的上一層找檔案)
     const lessons = {
         "ch1": {
-            text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.",
+            text: "The children loved the house...",
             audio: "../5 children and it - ch1 shadowing.mp3"
         },
         "ch2": {
-            text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape.\n\nThey held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.",
+            text: "The children were angry and unhappy...",
             audio: "../5 children and it - ch2 shadowing.mp3"
         },
         "ch3": {
-            text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.",
+            text: "The next day was very wet...",
             audio: "../5 children and it - ch3 shadowing.mp3"
         }
     };
@@ -66,39 +65,33 @@
         const data = lessons[val];
         document.getElementById('lessonText').innerText = data.text;
         
-        // 更新老師音檔
         const tAudio = document.getElementById('teacherAudio');
         tAudio.src = data.audio;
-        tAudio.load(); 
-        
-        document.getElementById('status').innerText = "Loaded " + val.toUpperCase();
+        tAudio.onerror = () => {
+            document.getElementById('status').innerText = "⚠️ 音檔載入失敗，請檢查檔名";
+        };
+        tAudio.oncanplaythrough = () => {
+            document.getElementById('status').innerText = "✅ " + val.toUpperCase() + " 音檔就緒";
+        };
+        tAudio.load();
     }
 
     window.onload = switchLesson;
 
-    let recorder, chunks = [], stream, audioCtx, dest;
+    let recorder, chunks = [], stream;
 
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
         
         try {
-            // 初始化音訊環境以混音（老師聲音+學生聲音）
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            dest = audioCtx.createMediaStreamDestination();
-            
-            // 取得麥克風
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const micSource = audioCtx.createMediaStreamSource(stream);
-            micSource.connect(dest);
-
-            // 取得老師音檔
+            
+            // 嘗試播放老師音檔，若失敗則僅啟動錄音
             const tAudio = document.getElementById('teacherAudio');
-            const teacherSource = audioCtx.createMediaElementSource(tAudio);
-            teacherSource.connect(dest);
-            teacherSource.connect(audioCtx.destination); // 讓學生耳機能聽到老師聲音
+            tAudio.play().catch(e => console.log("老師音檔播放跳過"));
 
-            recorder = new MediaRecorder(dest.stream);
+            recorder = new MediaRecorder(stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/webm' });
@@ -108,10 +101,7 @@
             };
 
             chunks = [];
-            tAudio.currentTime = 0;
-            tAudio.play(); // 開始放老師聲音
-            recorder.start(); // 開始錄音
-            
+            recorder.start();
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "🔴 RECORDING...";
@@ -121,9 +111,9 @@
     };
 
     document.getElementById('stopBtn').onclick = () => {
-        recorder.stop();
+        if (recorder) recorder.stop();
         document.getElementById('teacherAudio').pause();
-        stream.getTracks().forEach(t => t.stop());
+        if (stream) stream.getTracks().forEach(t => t.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
         document.getElementById('status').innerText = "RECORDING STOPPED";
@@ -136,9 +126,6 @@
         reader.readAsDataURL(blob);
         reader.onloadend = async () => {
             const base64 = reader.result.split(',')[1];
-            const name = document.getElementById('studentName').value;
-            const ch = document.getElementById('lessonSelect').value;
-            
             try {
                 await fetch(GAS_URL, {
                     method: 'POST',
@@ -146,14 +133,11 @@
                     body: JSON.stringify({
                         audio: base64,
                         className: "G8",
-                        name: name + "_" + ch
+                        name: document.getElementById('studentName').value + "_" + document.getElementById('lessonSelect').value
                     })
                 });
                 document.getElementById('status').innerText = "✅ SENT SUCCESSFULLY!";
-                document.getElementById('uploadBtn').style.display = 'none';
-            } catch (e) {
-                alert("Upload failed, please try again.");
-            }
+            } catch (e) { alert("Upload failed"); }
         };
     };
 </script></body></html>
