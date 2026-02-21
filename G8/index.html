@@ -1,6 +1,5 @@
 <!DOCTYPE html><html lang="zh-TW"><head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>G8 Recording Lab</title>
     <style>
         :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
@@ -20,65 +19,43 @@
         .status-bar { margin-top: 15px; font-size: 14px; color: var(--primary); font-weight: bold; text-transform: uppercase; }
     </style></head><body><div class="studio-container">
     <h2 style="margin:0 0 5px 0; font-size: 12px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB</h2>
-    
     <div class="admin-title-display" id="mainTitle"></div>
-
     <div class="input-row">
         <select id="lessonSelect" onchange="switchLesson()">
             <option value="ch1">Chapter 1</option>
-            <option value="ch2">Chapter 2</option>
             <option value="ch3">Chapter 3</option>
+            <option value="ch5">Chapter 5</option>
         </select>
         <input type="text" id="studentName" placeholder="Enter Your Name">
     </div>
-
     <div id="lessonText" class="reading-text"></div>
     <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
-
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous" playsinline></audio>
-
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START</button>
         <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
         <button id="uploadBtn" class="btn">📤 SEND TO TEACHER</button>
     </div>
-    
     <p id="status" class="status-bar">READY</p>
-    <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;"></audio>
-</div>
-
-<script>
-    // --- 【老師後台資料區】 ---
-    const CLASS_NAME = "G8"; // 班級
-    const BOOK_TITLE = "Five Children and It"; // 書名
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec"; 
-
+    <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;" playsinline></audio>
+</div><script>
+    const CLASS_NAME = "G8";
+    const BOOK_TITLE = "Five Children and It";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
     const lessons = {
-        "ch1": { 
-            text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.", 
-            audio: "5 children and it - ch1 shadowing.mp3" 
-        },
-        "ch2": { 
-            text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape. They held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.", 
-            audio: "5 children and it - ch2 shadowing.mp3" 
-        },
-        "ch3": { 
-            text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.", 
-            audio: "5 children and it - ch3 shadowing.mp3" 
-        }
+        "ch1": { text: "The children were very excited. They were at their new house in the country. It was beautiful. There were trees and flowers everywhere. They wanted to explore and find something interesting. Suddenly, they saw something moving in the sand. It was a Psammead!", audio: "5 children and it - ch1 shadowing.mp3" },
+        "ch3": { text: "For their next wish, the children wanted to be very beautiful. But when the wish came true, they didn't recognize each other. They were so beautiful that the servants wouldn't let them into the house! They had to sit outside all day and wait for the wish to end.", audio: "5 children and it - ch3 shadowing.mp3" },
+        "ch5": { text: "Anthea and Jane were looking for the Psammead. They wanted to make one last wish. They were worried because the wishes always went wrong. But they needed to help their brother. They found the Psammead near the sand pit. It looked tired but it was ready to listen.", audio: "5 children and it - ch5 shadowing.mp3" }
     };
-    // -----------------------
 
     document.getElementById('mainTitle').innerText = BOOK_TITLE;
     function switchLesson() {
         const val = document.getElementById('lessonSelect').value;
         document.getElementById('lessonText').innerText = lessons[val].text;
         const tAudio = document.getElementById('teacherAudio');
-        tAudio.src = lessons[val].audio;
-        tAudio.load();
+        tAudio.src = lessons[val].audio; tAudio.load();
     }
     window.onload = switchLesson;
-
     let recorder, chunks = [], stream, audioCtx, dest, analyser, animationId;
 
     function drawVisualizer() {
@@ -89,20 +66,15 @@
         function draw() {
             animationId = requestAnimationFrame(draw);
             analyser.getByteTimeDomainData(dataArray);
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.lineWidth = 3; ctx.strokeStyle = '#00ff88';
-            ctx.beginPath();
-            let sliceWidth = canvas.width / bufferLength;
-            let x = 0;
+            ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 3; ctx.strokeStyle = '#00ff88'; ctx.beginPath();
+            let sliceWidth = canvas.width / bufferLength; let x = 0;
             for (let i = 0; i < bufferLength; i++) {
-                let v = dataArray[i] / 128.0;
-                let y = v * canvas.height / 2;
+                let v = dataArray[i] / 128.0; let y = v * canvas.height / 2;
                 if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 x += sliceWidth;
             }
-            ctx.lineTo(canvas.width, canvas.height / 2);
-            ctx.stroke();
+            ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
         }
         draw();
     }
@@ -110,32 +82,37 @@
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
+        const teacherAudio = document.getElementById('teacherAudio');
         try {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            
+            if (!dest) {
                 dest = audioCtx.createMediaStreamDestination();
                 analyser = audioCtx.createAnalyser();
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const micSource = audioCtx.createMediaStreamSource(stream);
                 micSource.connect(analyser); micSource.connect(dest);
-                const tAudio = document.getElementById('teacherAudio');
-                const tSource = audioCtx.createMediaElementSource(tAudio);
+                const tSource = audioCtx.createMediaElementSource(teacherAudio);
                 tSource.connect(dest); tSource.connect(audioCtx.destination);
             }
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            
             drawVisualizer();
-            recorder = new MediaRecorder(dest.stream);
+            const options = { mimeType: MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm' };
+            recorder = new MediaRecorder(dest.stream, options);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                document.getElementById('audioPlayer').src = URL.createObjectURL(blob);
-                document.getElementById('audioPlayer').style.display = 'block';
+                const blob = new Blob(chunks, { type: options.mimeType });
+                const audioURL = URL.createObjectURL(blob);
+                const player = document.getElementById('audioPlayer');
+                player.src = audioURL;
+                player.style.display = 'block';
+                player.load();
                 document.getElementById('uploadBtn').style.display = 'block';
             };
-            chunks = [];
-            document.getElementById('teacherAudio').currentTime = 0;
-            document.getElementById('teacherAudio').play();
-            recorder.start();
+            chunks = []; teacherAudio.currentTime = 0; teacherAudio.play(); recorder.start();
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
@@ -143,8 +120,9 @@
     };
 
     document.getElementById('stopBtn').onclick = () => {
+        const teacherAudio = document.getElementById('teacherAudio');
         if(recorder) recorder.stop();
-        document.getElementById('teacherAudio').pause();
+        teacherAudio.pause();
         cancelAnimationFrame(animationId);
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
@@ -161,13 +139,8 @@
             const base64 = reader.result.split(',')[1];
             try {
                 await fetch(GAS_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({ 
-                        audio: base64, 
-                        className: CLASS_NAME, 
-                        name: document.getElementById('studentName').value + "_" + BOOK_TITLE + "_" + document.getElementById('lessonSelect').value 
-                    })
+                    method: 'POST', mode: 'no-cors',
+                    body: JSON.stringify({ audio: base64, className: CLASS_NAME, name: document.getElementById('studentName').value + "_" + BOOK_TITLE + "_" + document.getElementById('lessonSelect').value })
                 });
                 statusEl.innerText = "SENT SUCCESSFULLY!";
                 alert("Upload Success!");
