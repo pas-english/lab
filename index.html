@@ -1,29 +1,22 @@
 <!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>G8 Recording Lab</title>
+    <title>G8 Lab</title>
     <style>
-        :root { --primary: #00ff88; --gold: #fcc419; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
-        body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 600px; width: 100%; text-align: center; border: 1px solid #333; }
-        .info-section { text-align: left; border-radius: 12px; padding: 15px; margin-bottom: 15px; font-size: 14px; }
-        .how-to-play { background: rgba(252, 196, 25, 0.1); border-left: 4px solid var(--gold); padding: 10px; }
-        .visualizer-container { background: #000; height: 80px; width: 100%; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--primary); }
-        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 19px; line-height: 1.8; color: #fff; margin-bottom: 20px; white-space: pre-wrap; }
-        .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
-        input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
-        .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; }
+        :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .studio-container { background: var(--card); padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 500px; width: 100%; text-align: center; }
+        .reading-text { background: #2d333d; border: 1px solid #444; padding: 15px; border-radius: 12px; text-align: left; font-size: 18px; line-height: 1.6; margin: 20px 0; min-height: 100px; white-space: pre-wrap; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        input, select { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #1a1d23; color: #fff; }
+        .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
         #startBtn { background: #e53e3e; color: #fff; }
         #stopBtn { background: #4a5568; color: #fff; }
         #uploadBtn { background: var(--primary); color: #000; grid-column: span 2; display: none; margin-top: 10px; }
-        .status-bar { margin-top: 15px; font-size: 15px; color: var(--primary); font-weight: bold; }
-        audio { width: 100%; margin-top: 15px; filter: invert(100%); }
+        .status { margin-top: 10px; color: var(--primary); font-size: 14px; }
     </style></head><body><div class="studio-container">
-    <h1 style="margin:0; font-size: 24px; color: var(--primary);">JACKIE'S AUDIO LAB (G8)</h1>
-    <div class="info-section how-to-play">
-        <b>💡 操作：</b> 選好 Chapter -> 按 START 錄音 -> 按 STOP 停止 -> 試聽 OK 按 SEND。
-    </div>
+    <h2 style="color: var(--primary); margin-top: 0;">JACKIE LAB (G8)</h2>
     <div class="input-row">
         <select id="lessonSelect" onchange="switchLesson()">
             <option value="ch1">Chapter 1</option>
@@ -32,22 +25,21 @@
         </select>
         <input type="text" id="studentName" placeholder="輸入英文姓名">
     </div>
-    <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
-    <div class="reading-text" id="lessonText"></div>
+    <div class="reading-text" id="lessonText">載入中...</div>
     <audio id="teacherAudio" src="" preload="auto" crossorigin="anonymous" playsinline></audio>
     <div class="btn-box">
-        <button id="startBtn" class="btn">🔴 START 錄音</button>
-        <button id="stopBtn" class="btn" disabled>⏹ STOP 停止</button>
-        <button id="uploadBtn" class="btn">📤 SEND 傳送</button>
+        <button id="startBtn" class="btn">🔴 START</button>
+        <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
+        <button id="uploadBtn" class="btn">📤 SEND</button>
     </div>
-    <p id="status" class="status-bar">READY</p>
-    <audio id="audioPlayer" controls style="display: none;" playsinline></audio>
+    <p id="status" class="status">READY</p>
+    <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 10px;"></audio>
 </div><script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
     const lessons = {
-        "ch1": { text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.", audio: "../5 children and it - ch1 shadowing.mp3" },
-        "ch2": { text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape.\n\nThey held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.", audio: "../5 children and it - ch2 shadowing.mp3" },
-        "ch3": { text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.", audio: "../5 children and it - ch3 shadowing.mp3" }
+        "ch1": { text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful.", audio: "../5 children and it - ch1 shadowing.mp3" },
+        "ch2": { text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape.", audio: "../5 children and it - ch2 shadowing.mp3" },
+        "ch3": { text: "The next day was very wet. It rained all day and the children could not go to see the Psammead.", audio: "../5 children and it - ch3 shadowing.mp3" }
     };
     function switchLesson() {
         const data = lessons[document.getElementById('lessonSelect').value];
@@ -55,32 +47,16 @@
         document.getElementById('teacherAudio').src = data.audio;
         document.getElementById('status').innerText = "已載入 " + document.getElementById('lessonSelect').value;
     }
-    window.onload = () => { switchLesson(); };
-    let recorder, chunks = [], audioContext, dest, activeStream, analyser, dataArray, animationId;
-    const canvas = document.getElementById('visualizer');
-    const canvasCtx = canvas.getContext('2d');
-    function draw() {
-        animationId = requestAnimationFrame(draw);
-        analyser.getByteTimeDomainData(dataArray);
-        canvasCtx.fillStyle = '#000'; canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-        canvasCtx.lineWidth = 3; canvasCtx.strokeStyle = '#00ff88'; canvasCtx.beginPath();
-        let sliceWidth = canvas.width * 1.0 / analyser.frequencyBinCount; let x = 0;
-        for(let i = 0; i < analyser.frequencyBinCount; i++) {
-            let v = dataArray[i] / 128.0; let y = v * canvas.height / 2;
-            if(i === 0) canvasCtx.moveTo(x, y); else canvasCtx.lineTo(x, y); x += sliceWidth;
-        }
-        canvasCtx.stroke();
-    }
+    window.onload = switchLesson;
+    let recorder, chunks = [], audioContext, dest, stream;
     document.getElementById('startBtn').onclick = async () => {
         if (!document.getElementById('studentName').value.trim()) return alert("請輸入姓名");
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             dest = audioContext.createMediaStreamDestination();
-            activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
-            dataArray = new Uint8Array(analyser.frequencyBinCount);
-            const micSource = audioContext.createMediaStreamSource(activeStream);
-            micSource.connect(analyser); micSource.connect(dest);
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const micSource = audioContext.createMediaStreamSource(stream);
+            micSource.connect(dest);
             const teacherAudio = document.getElementById('teacherAudio');
             const teacherSource = audioContext.createMediaElementSource(teacherAudio);
             teacherSource.connect(dest); teacherSource.connect(audioContext.destination);
@@ -90,18 +66,17 @@
                 const blob = new Blob(chunks, { type: 'audio/webm' });
                 document.getElementById('audioPlayer').src = URL.createObjectURL(blob);
                 document.getElementById('audioPlayer').style.display = 'block';
-                document.getElementById('uploadBtn').style.display = 'flex';
-                cancelAnimationFrame(animationId);
+                document.getElementById('uploadBtn').style.display = 'block';
             };
-            chunks = []; teacherAudio.currentTime = 0; teacherAudio.play(); recorder.start(); draw();
+            chunks = []; teacherAudio.currentTime = 0; teacherAudio.play(); recorder.start();
             document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "🔴 錄音中...";
-        } catch (err) { alert("錄音失敗：" + err); }
+        } catch (err) { alert("錯誤：" + err); }
     };
     document.getElementById('stopBtn').onclick = () => {
         recorder.stop(); document.getElementById('teacherAudio').pause();
         document.getElementById('startBtn').disabled = false; document.getElementById('stopBtn').disabled = true;
-        activeStream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach(t => t.stop());
     };
     document.getElementById('uploadBtn').onclick = async () => {
         document.getElementById('status').innerText = "🚀 傳送中...";
