@@ -9,6 +9,8 @@
         .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; }
         .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
         input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
+        .visualizer-container { background: #111; border-radius: 12px; height: 80px; margin-bottom: 15px; border: 1px solid #333; overflow: hidden; }
+        canvas { width: 100%; height: 100%; display: block; }
         .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; }
         #startBtn { background: #e53e3e; color: #fff; }
@@ -19,14 +21,11 @@
     <h2 style="margin:0 0 5px 0; font-size: 10px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB</h2>
     <div class="admin-title-display" id="mainTitle"></div>
     <div class="input-row">
-        <select id="lessonSelect" onchange="switchLesson()">
-            <option value="ch1">Chapter 1</option>
-            <option value="ch3">Chapter 3</option>
-            <option value="ch5">Chapter 5</option>
-        </select>
+        <select id="lessonSelect" onchange="switchLesson()"><option value="ch1">Chapter 1</option><option value="ch3">Chapter 3</option><option value="ch5">Chapter 5</option></select>
         <input type="text" id="studentName" placeholder="Name">
     </div>
     <div id="lessonText" class="reading-text"></div>
+    <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous" playsinline></audio>
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START</button>
@@ -49,7 +48,29 @@
         document.getElementById('teacherAudio').src = lessons[val].audio;
     }
     window.onload = switchLesson;
-    let recorder, chunks = [], audioCtx, dest, stream;
+
+    let recorder, chunks = [], audioCtx, dest, analyser, animationId;
+
+    function drawVisualizer() {
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        function draw() {
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteTimeDomainData(dataArray);
+            ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 2; ctx.strokeStyle = '#00ff88'; ctx.beginPath();
+            let sliceWidth = canvas.width / bufferLength, x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                let v = dataArray[i] / 128.0, y = v * canvas.height / 2;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
+        }
+        draw();
+    }
 
     document.getElementById('startBtn').onclick = async () => {
         if (!document.getElementById('studentName').value.trim()) return alert("Enter Name!");
@@ -57,10 +78,15 @@
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             await audioCtx.resume();
             dest = audioCtx.createMediaStreamDestination();
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            audioCtx.createMediaStreamSource(stream).connect(dest);
-            const tSource = audioCtx.createMediaElementSource(document.getElementById('teacherAudio'));
+            analyser = audioCtx.createAnalyser();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const micSource = audioCtx.createMediaStreamSource(stream);
+            micSource.connect(analyser); micSource.connect(dest);
+            const tAudio = document.getElementById('teacherAudio');
+            const tSource = audioCtx.createMediaElementSource(tAudio);
             tSource.connect(dest); tSource.connect(audioCtx.destination);
+
+            drawVisualizer();
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
@@ -69,9 +95,9 @@
                 const p = document.getElementById('audioPlayer');
                 p.src = url; p.style.display = 'block'; p.load();
                 document.getElementById('uploadBtn').style.display = 'block';
+                cancelAnimationFrame(animationId);
             };
-            chunks = []; document.getElementById('teacherAudio').currentTime = 0; 
-            document.getElementById('teacherAudio').play(); recorder.start();
+            chunks = []; tAudio.currentTime = 0; tAudio.play(); recorder.start();
             document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
         } catch (e) { alert("Error: " + e); }
