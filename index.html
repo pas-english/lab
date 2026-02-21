@@ -1,40 +1,11 @@
 <!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>G8 Lab Test</title>
-    <style>
-        body { background: #1a1d23; color: white; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
-        .card { background: #252932; padding: 20px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; border: 2px solid #00ff88; }
-        .text-box { background: #2d333d; padding: 15px; border-radius: 10px; margin: 20px 0; text-align: left; min-height: 50px; border: 1px solid #444; }
-        select, input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: none; }
-        button { width: 100%; padding: 15px; background: #00ff88; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-    </style>
-</head><body>
-    <div class="card">
-        <h2>G8 測試網頁</h2>
-        <select id="lessonSelect" onchange="switchLesson()">
-            <option value="ch1">Chapter 1</option>
-            <option value="ch2">Chapter 2</option>
-            <option value="ch3">Chapter 3</option>
-        </select>
-        <div id="lessonText" class="text-box">載入中...</div>
-        <button onclick="alert('網頁功能正常！')">點我測試按鈕</button>
-        <p id="status" style="color: #00ff88; margin-top: 10px;">如果看到這行，代表網頁已成功啟動</p>
+    <title>Jackie's English Lab</title>
+</head>
+<body style="background: #1a1d23; color: white; text-align: center; font-family: sans-serif; padding-top: 100px;">
+    <h1>歡迎來到英語實驗室</h1>
+    <p>請選擇您的班級進入教室：</p>
+    <div style="margin-top: 30px;">
+        <a href="./G8/" style="padding: 15px 40px; background: #00ff88; color: black; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 20px;">進入 G8 錄音教室</a>
     </div>
-
-<script>
-    const lessons = {
-        "ch1": "The children loved the house. They knew immediately that they were going to be happy there.",
-        "ch2": "The children were angry and unhappy, but the policeman walked along the road behind them.",
-        "ch3": "The next day was very wet. It rained all day and the children could not go to see the Psammead."
-    };
-
-    function switchLesson() {
-        const val = document.getElementById('lessonSelect').value;
-        document.getElementById('lessonText').innerText = lessons[val];
-    }
-
-    // 網頁開啟時立刻執行一次
-    window.onload = switchLesson;
-</script>
 </body></html>
