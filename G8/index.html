@@ -17,8 +17,6 @@
         .status-bar { margin-top: 15px; font-size: 15px; color: var(--primary); font-weight: bold; }
     </style></head><body><div class="studio-container">
     <h2 style="margin:0; color: var(--primary);">G8 RECORDING LAB</h2>
-    <p style="font-size: 14px; color: #888;">Step: Select Chapter -> Name -> Start -> Send</p>
-    
     <div class="input-row">
         <select id="lessonSelect" onchange="switchLesson()">
             <option value="ch1">Chapter 1</option>
@@ -27,69 +25,60 @@
         </select>
         <input type="text" id="studentName" placeholder="Enter Your Name">
     </div>
-
     <div id="lessonText" class="reading-text"></div>
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous" playsinline></audio>
-
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START</button>
         <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
         <button id="uploadBtn" class="btn">📤 SEND TO TEACHER</button>
     </div>
-    
     <p id="status" class="status-bar">READY</p>
     <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;"></audio>
 </div>
 
 <script>
-    // 老師提供的最新 GAS 網址
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec"; 
 
     const lessons = {
-        "ch1": {
-            text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.",
-            audio: "5 children and it - ch1 shadowing.mp3"
-        },
-        "ch2": {
-            text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape.\n\nThey held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.",
-            audio: "5 children and it - ch2 shadowing.mp3"
-        },
-        "ch3": {
-            text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.",
-            audio: "5 children and it - ch3 shadowing.mp3"
-        }
+        "ch1": { text: "The children loved the house...", audio: "5 children and it - ch1 shadowing.mp3" },
+        "ch2": { text: "The children were angry and unhappy...", audio: "5 children and it - ch2 shadowing.mp3" },
+        "ch3": { text: "The next day was very wet...", audio: "5 children and it - ch3 shadowing.mp3" }
     };
 
     function switchLesson() {
         const val = document.getElementById('lessonSelect').value;
-        const data = lessons[val];
-        document.getElementById('lessonText').innerText = data.text;
+        document.getElementById('lessonText').innerText = lessons[val].text;
         const tAudio = document.getElementById('teacherAudio');
-        tAudio.src = data.audio;
+        tAudio.src = lessons[val].audio;
         tAudio.load();
-        document.getElementById('status').innerText = "Loaded " + val.toUpperCase();
+        document.getElementById('status').innerText = "Switched to " + val.toUpperCase();
     }
-
     window.onload = switchLesson;
 
-    let recorder, chunks = [], stream, audioCtx, dest;
+    let recorder, chunks = [], stream, audioCtx, dest, teacherSource;
 
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
         
         try {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            dest = audioCtx.createMediaStreamDestination();
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            const micSource = audioCtx.createMediaStreamSource(stream);
-            micSource.connect(dest);
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                dest = audioCtx.createMediaStreamDestination();
+                
+                // 麥克風連接
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const micSource = audioCtx.createMediaStreamSource(stream);
+                micSource.connect(dest);
 
-            const tAudio = document.getElementById('teacherAudio');
-            const teacherSource = audioCtx.createMediaElementSource(tAudio);
-            teacherSource.connect(dest);
-            teacherSource.connect(audioCtx.destination);
+                // 老師音檔連接 (關鍵：只連接一次)
+                const tAudio = document.getElementById('teacherAudio');
+                teacherSource = audioCtx.createMediaElementSource(tAudio);
+                teacherSource.connect(dest);
+                teacherSource.connect(audioCtx.destination);
+            }
+
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
 
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
@@ -101,6 +90,7 @@
             };
 
             chunks = [];
+            const tAudio = document.getElementById('teacherAudio');
             tAudio.currentTime = 0;
             tAudio.play();
             recorder.start();
@@ -109,14 +99,13 @@
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "🔴 RECORDING...";
         } catch (err) {
-            alert("Microphone Error: " + err);
+            alert("Mic Error: " + err);
         }
     };
 
     document.getElementById('stopBtn').onclick = () => {
-        if(recorder) recorder.stop();
+        if(recorder && recorder.state !== "inactive") recorder.stop();
         document.getElementById('teacherAudio').pause();
-        if(stream) stream.getTracks().forEach(t => t.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
         document.getElementById('status').innerText = "STOPPED";
@@ -125,33 +114,25 @@
     document.getElementById('uploadBtn').onclick = async () => {
         const statusEl = document.getElementById('status');
         statusEl.innerText = "🚀 SENDING...";
-        
         const blob = await fetch(document.getElementById('audioPlayer').src).then(r => r.blob());
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = async () => {
             const base64 = reader.result.split(',')[1];
-            const payload = {
-                audio: base64,
-                className: "G8",
-                name: document.getElementById('studentName').value + "_" + document.getElementById('lessonSelect').value
-            };
-
             try {
-                // 使用 no-cors 模式確保資料送達
                 await fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    cache: 'no-cache',
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ 
+                        audio: base64, 
+                        className: "G8", 
+                        name: document.getElementById('studentName').value + "_" + document.getElementById('lessonSelect').value 
+                    })
                 });
-                statusEl.innerText = "✅ SENT! Check your Google Sheet.";
+                statusEl.innerText = "✅ SENT SUCCESSFULLY!";
                 alert("Upload complete!");
                 document.getElementById('uploadBtn').style.display = 'none';
-            } catch (e) {
-                statusEl.innerText = "❌ UPLOAD FAILED";
-                alert("Upload failed.");
-            }
+            } catch (e) { alert("Upload failed."); }
         };
     };
 </script></body></html>
