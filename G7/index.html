@@ -44,7 +44,7 @@
 <script>
     // --- 【G7 後台資料區】 ---
     const CLASS_NAME = "G7"; 
-    const BOOK_TITLE = "The Monkey's Paw"; 
+    const BOOK_TITLE = "The Monkeys Paw"; 
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec"; 
 
     const lessons = {
@@ -99,7 +99,7 @@
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
-        const teacherAudio = document.getElementById('teacherAudio'); // 定義變數防止報錯
+        const teacherAudio = document.getElementById('teacherAudio');
         try {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -122,7 +122,7 @@
                 document.getElementById('uploadBtn').style.display = 'block';
             };
             chunks = []; 
-            teacherAudio.currentTime = 0; // 修正處：使用正確變數名
+            teacherAudio.currentTime = 0;
             teacherAudio.play(); 
             recorder.start();
             document.getElementById('startBtn').disabled = true;
@@ -150,17 +150,22 @@
         reader.onloadend = async () => {
             const base64 = reader.result.split(',')[1];
             try {
+                // 結構必須與 G8 完全一致
                 await fetch(GAS_URL, {
-                    method: 'POST', mode: 'no-cors',
+                    method: 'POST',
+                    mode: 'no-cors',
                     body: JSON.stringify({ 
-                        audio: base64, className: CLASS_NAME, 
+                        audio: base64, 
+                        className: CLASS_NAME, 
                         name: document.getElementById('studentName').value + "_" + BOOK_TITLE + "_" + document.getElementById('lessonSelect').value 
                     })
                 });
                 statusEl.innerText = "SENT SUCCESSFULLY!";
                 alert("Upload Success!");
                 document.getElementById('uploadBtn').style.display = 'none';
-            } catch (e) { alert("Upload failed."); }
+            } catch (e) { 
+                alert("Upload failed."); 
+            }
         };
     };
 </script></body></html>
