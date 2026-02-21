@@ -17,7 +17,7 @@
         .status-bar { margin-top: 15px; font-size: 15px; color: var(--primary); font-weight: bold; }
     </style></head><body><div class="studio-container">
     <h2 style="margin:0; color: var(--primary);">G8 RECORDING LAB</h2>
-    <p style="font-size: 14px; color: #888;">Step: Select Ch -> Name -> Start -> Send</p>
+    <p style="font-size: 14px; color: #888;">Step: Select Chapter -> Name -> Start -> Send</p>
     
     <div class="input-row">
         <select id="lessonSelect" onchange="switchLesson()">
@@ -42,8 +42,8 @@
 </div>
 
 <script>
-    // 【重要：請在此處填入您新帳號部署的 /exec 網址】
-    const GAS_URL = "在此處貼上最新的URL"; 
+    // 老師提供的最新 GAS 網址
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec"; 
 
     const lessons = {
         "ch1": {
@@ -138,17 +138,18 @@
             };
 
             try {
+                // 使用 no-cors 模式確保資料送達
                 await fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     cache: 'no-cache',
                     body: JSON.stringify(payload)
                 });
-                statusEl.innerText = "✅ SENT SUCCESSFULLY!";
-                alert("Upload complete! Please check your Google Sheet.");
+                statusEl.innerText = "✅ SENT! Check your Google Sheet.";
+                alert("Upload complete!");
                 document.getElementById('uploadBtn').style.display = 'none';
             } catch (e) {
-                statusEl.innerText = "❌ ERROR - PLEASE TRY AGAIN";
+                statusEl.innerText = "❌ UPLOAD FAILED";
                 alert("Upload failed.");
             }
         };
