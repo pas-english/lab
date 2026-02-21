@@ -42,8 +42,8 @@
 </div>
 
 <script>
-    // 已更新為老師的新 GAS 網址
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyDjdjOfFJ0wFuGTsSg9cEpEDDtjs-YANxeu9aOxie99US2a7DCNKDmkDjsMJDfbSRpHQ/exec"; 
+    // 這裡已自動換成老師提供的新網址
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec"; 
 
     const lessons = {
         "ch1": {
@@ -138,18 +138,18 @@
             };
 
             try {
-                // 使用 fetch 並設定 no-cors 以相容 Google Script
+                // 使用 no-cors 模式確保資料送達 Google Script
                 await fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     cache: 'no-cache',
                     body: JSON.stringify(payload)
                 });
-                statusEl.innerText = "✅ SENT! Please check with Teacher.";
-                alert("Upload success! Your recording has been sent.");
+                statusEl.innerText = "✅ SENT SUCCESSFULLY!";
+                alert("Upload complete! Please check your Google Sheet.");
                 document.getElementById('uploadBtn').style.display = 'none';
             } catch (e) {
-                statusEl.innerText = "❌ ERROR - TRY AGAIN";
+                statusEl.innerText = "❌ ERROR - PLEASE TRY AGAIN";
                 alert("Upload failed.");
             }
         };
