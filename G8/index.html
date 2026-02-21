@@ -5,8 +5,8 @@
     <style>
         :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
         body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 500px; width: 100%; text-align: center; border: 1px solid #333; }
-        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 20px 0; min-height: 150px; white-space: pre-wrap; }
+        .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 550px; width: 100%; text-align: center; border: 1px solid #333; }
+        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 20px 0; min-height: 180px; white-space: pre-wrap; word-break: break-word; }
         .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
         input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
         .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -17,7 +17,7 @@
         .status-bar { margin-top: 15px; font-size: 15px; color: var(--primary); font-weight: bold; }
     </style></head><body><div class="studio-container">
     <h2 style="margin:0; color: var(--primary);">G8 RECORDING LAB</h2>
-    <p style="font-size: 14px; color: #888;">Step: Select Ch -> Name -> Start -> Send</p>
+    <p style="font-size: 14px; color: #888;">Select Chapter -> Name -> Start -> Send</p>
     
     <div class="input-row">
         <select id="lessonSelect" onchange="switchLesson()">
@@ -47,16 +47,16 @@
 
     const lessons = {
         "ch1": {
-            text: "The children loved the house...",
-            audio: "../5 children and it - ch1 shadowing.mp3"
+            text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.",
+            audio: "5 children and it - ch1 shadowing.mp3"
         },
         "ch2": {
-            text: "The children were angry and unhappy...",
-            audio: "../5 children and it - ch2 shadowing.mp3"
+            text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape.\n\nThey held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.",
+            audio: "5 children and it - ch2 shadowing.mp3"
         },
         "ch3": {
-            text: "The next day was very wet...",
-            audio: "../5 children and it - ch3 shadowing.mp3"
+            text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.",
+            audio: "5 children and it - ch3 shadowing.mp3"
         }
     };
 
@@ -67,31 +67,31 @@
         
         const tAudio = document.getElementById('teacherAudio');
         tAudio.src = data.audio;
-        tAudio.onerror = () => {
-            document.getElementById('status').innerText = "⚠️ 音檔載入失敗，請檢查檔名";
-        };
-        tAudio.oncanplaythrough = () => {
-            document.getElementById('status').innerText = "✅ " + val.toUpperCase() + " 音檔就緒";
-        };
         tAudio.load();
+        document.getElementById('status').innerText = "Loaded " + val.toUpperCase();
     }
 
     window.onload = switchLesson;
 
-    let recorder, chunks = [], stream;
+    let recorder, chunks = [], stream, audioCtx, dest;
 
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
         
         try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            dest = audioCtx.createMediaStreamDestination();
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // 嘗試播放老師音檔，若失敗則僅啟動錄音
-            const tAudio = document.getElementById('teacherAudio');
-            tAudio.play().catch(e => console.log("老師音檔播放跳過"));
+            const micSource = audioCtx.createMediaStreamSource(stream);
+            micSource.connect(dest);
 
-            recorder = new MediaRecorder(stream);
+            const tAudio = document.getElementById('teacherAudio');
+            const teacherSource = audioCtx.createMediaElementSource(tAudio);
+            teacherSource.connect(dest);
+            teacherSource.connect(audioCtx.destination);
+
+            recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/webm' });
@@ -101,7 +101,10 @@
             };
 
             chunks = [];
+            tAudio.currentTime = 0;
+            tAudio.play();
             recorder.start();
+            
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "🔴 RECORDING...";
@@ -111,9 +114,9 @@
     };
 
     document.getElementById('stopBtn').onclick = () => {
-        if (recorder) recorder.stop();
+        recorder.stop();
         document.getElementById('teacherAudio').pause();
-        if (stream) stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach(t => t.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
         document.getElementById('status').innerText = "RECORDING STOPPED";
@@ -137,7 +140,9 @@
                     })
                 });
                 document.getElementById('status').innerText = "✅ SENT SUCCESSFULLY!";
-            } catch (e) { alert("Upload failed"); }
+            } catch (e) {
+                alert("Upload failed.");
+            }
         };
     };
 </script></body></html>
