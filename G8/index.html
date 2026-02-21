@@ -6,9 +6,11 @@
         :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
         body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
         .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 550px; width: 100%; text-align: center; border: 1px solid #333; }
-        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 20px 0; min-height: 180px; white-space: pre-wrap; word-break: break-word; }
-        .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
-        input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
+        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; word-break: break-word; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; min-width: 120px; }
+        .visualizer-container { background: #1a1d23; border-radius: 12px; height: 60px; margin-bottom: 15px; overflow: hidden; border: 1px solid #333; }
+        canvas { width: 100%; height: 100%; }
         .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; }
         #startBtn { background: #e53e3e; color: #fff; }
@@ -16,7 +18,12 @@
         #uploadBtn { background: var(--primary); color: #000; grid-column: span 2; display: none; margin-top: 10px; }
         .status-bar { margin-top: 15px; font-size: 15px; color: var(--primary); font-weight: bold; }
     </style></head><body><div class="studio-container">
-    <h2 style="margin:0; color: var(--primary);">G8 RECORDING LAB</h2>
+    <h2 style="margin:0 0 15px 0; color: var(--primary);">G8 RECORDING LAB</h2>
+    
+    <div class="input-row">
+        <input type="text" id="recordingTitle" placeholder="Topic / Title (e.g. Unit 1 Quiz)" style="border-color: var(--primary);">
+    </div>
+
     <div class="input-row">
         <select id="lessonSelect" onchange="switchLesson()">
             <option value="ch1">Chapter 1</option>
@@ -25,13 +32,21 @@
         </select>
         <input type="text" id="studentName" placeholder="Enter Your Name">
     </div>
+
     <div id="lessonText" class="reading-text"></div>
+    
+    <div class="visualizer-container">
+        <canvas id="visualizer"></canvas>
+    </div>
+
     <audio id="teacherAudio" preload="auto" crossorigin="anonymous" playsinline></audio>
+
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START</button>
         <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
         <button id="uploadBtn" class="btn">📤 SEND TO TEACHER</button>
     </div>
+    
     <p id="status" class="status-bar">READY</p>
     <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;"></audio>
 </div>
@@ -40,54 +55,75 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec"; 
 
     const lessons = {
-        "ch1": {
-            text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.",
-            audio: "5 children and it - ch1 shadowing.mp3"
-        },
-        "ch2": {
-            text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape.\n\nThey held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.",
-            audio: "5 children and it - ch2 shadowing.mp3"
-        },
-        "ch3": {
-            text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.",
-            audio: "5 children and it - ch3 shadowing.mp3"
-        }
+        "ch1": { text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.", audio: "5 children and it - ch1 shadowing.mp3" },
+        "ch2": { text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape.\n\nThey held their heads down because they did not want anyone to see them, and suddenly Robert ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.", audio: "5 children and it - ch2 shadowing.mp3" },
+        "ch3": { text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.", audio: "5 children and it - ch3 shadowing.mp3" }
     };
 
     function switchLesson() {
         const val = document.getElementById('lessonSelect').value;
-        const data = lessons[val];
-        document.getElementById('lessonText').innerText = data.text;
+        document.getElementById('lessonText').innerText = lessons[val].text;
         const tAudio = document.getElementById('teacherAudio');
-        tAudio.src = data.audio;
+        tAudio.src = lessons[val].audio;
         tAudio.load();
-        document.getElementById('status').innerText = "Loaded " + val.toUpperCase();
     }
     window.onload = switchLesson;
 
-    let recorder, chunks = [], stream, audioCtx, dest, teacherSource;
+    let recorder, chunks = [], stream, audioCtx, dest, analyser, animationId;
+
+    // 波形繪製函數
+    function drawVisualizer() {
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        function draw() {
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteTimeDomainData(dataArray);
+            ctx.fillStyle = '#1a1d23';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#00ff88';
+            ctx.beginPath();
+            let sliceWidth = canvas.width * 1.0 / bufferLength;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                let v = dataArray[i] / 128.0;
+                let y = v * canvas.height / 2;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.stroke();
+        }
+        draw();
+    }
 
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
         
         try {
-            // 修正 Microphone Error：確保 AudioContext 只初始化一次
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 dest = audioCtx.createMediaStreamDestination();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
                 
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const micSource = audioCtx.createMediaStreamSource(stream);
+                micSource.connect(analyser); // 接到波形分析器
                 micSource.connect(dest);
 
                 const tAudio = document.getElementById('teacherAudio');
-                teacherSource = audioCtx.createMediaElementSource(tAudio);
+                const teacherSource = audioCtx.createMediaElementSource(tAudio);
                 teacherSource.connect(dest);
                 teacherSource.connect(audioCtx.destination);
             }
-
             if (audioCtx.state === 'suspended') await audioCtx.resume();
+            
+            drawVisualizer(); // 開始畫波形
 
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
@@ -99,22 +135,20 @@
             };
 
             chunks = [];
-            const tAudio = document.getElementById('teacherAudio');
-            tAudio.currentTime = 0;
-            tAudio.play();
+            document.getElementById('teacherAudio').currentTime = 0;
+            document.getElementById('teacherAudio').play();
             recorder.start();
             
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "🔴 RECORDING...";
-        } catch (err) {
-            alert("Mic Error: " + err);
-        }
+        } catch (err) { alert("Mic Error: " + err); }
     };
 
     document.getElementById('stopBtn').onclick = () => {
-        if(recorder && recorder.state !== "inactive") recorder.stop();
+        if(recorder) recorder.stop();
         document.getElementById('teacherAudio').pause();
+        cancelAnimationFrame(animationId); // 停止波形
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
         document.getElementById('status').innerText = "STOPPED";
@@ -122,7 +156,9 @@
 
     document.getElementById('uploadBtn').onclick = async () => {
         const statusEl = document.getElementById('status');
+        const title = document.getElementById('recordingTitle').value.trim() || "Untitled";
         statusEl.innerText = "🚀 SENDING...";
+        
         const blob = await fetch(document.getElementById('audioPlayer').src).then(r => r.blob());
         const reader = new FileReader();
         reader.readAsDataURL(blob);
@@ -135,7 +171,8 @@
                     body: JSON.stringify({ 
                         audio: base64, 
                         className: "G8", 
-                        name: document.getElementById('studentName').value + "_" + document.getElementById('lessonSelect').value 
+                        // 檔名會包含 Title：[G8] 姓名_Title_Chapter
+                        name: document.getElementById('studentName').value + "_" + title + "_" + document.getElementById('lessonSelect').value 
                     })
                 });
                 statusEl.innerText = "✅ SENT SUCCESSFULLY!";
