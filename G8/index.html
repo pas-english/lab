@@ -42,8 +42,8 @@
 </div>
 
 <script>
-    // 請確認您的 GAS 網址結尾包含 /exec
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
+    // 已更新為老師的新 GAS 網址
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyDjdjOfFJ0wFuGTsSg9cEpEDDtjs-YANxeu9aOxie99US2a7DCNKDmkDjsMJDfbSRpHQ/exec"; 
 
     const lessons = {
         "ch1": {
@@ -119,7 +119,7 @@
         stream.getTracks().forEach(t => t.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
-        document.getElementById('status').innerText = "STOPPED - Ready to Send";
+        document.getElementById('status').innerText = "STOPPED";
     };
 
     document.getElementById('uploadBtn').onclick = async () => {
@@ -138,17 +138,18 @@
             };
 
             try {
+                // 使用 fetch 並設定 no-cors 以相容 Google Script
                 await fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     cache: 'no-cache',
                     body: JSON.stringify(payload)
                 });
-                statusEl.innerText = "✅ SENT SUCCESSFULLY!";
-                alert("Upload complete! Please confirm with Jackie Teacher.");
+                statusEl.innerText = "✅ SENT! Please check with Teacher.";
+                alert("Upload success! Your recording has been sent.");
                 document.getElementById('uploadBtn').style.display = 'none';
             } catch (e) {
-                statusEl.innerText = "❌ ERROR - PLEASE TRY AGAIN";
+                statusEl.innerText = "❌ ERROR - TRY AGAIN";
                 alert("Upload failed.");
             }
         };
