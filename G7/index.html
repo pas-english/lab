@@ -1,1 +1,180 @@
+<!DOCTYPE html><html lang="zh-TW"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PAS Recording Lab</title>
+    <style>
+        :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
+        body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 550px; width: 100%; text-align: center; border: 1px solid #333; }
+        .admin-title-display { background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,255,136,0) 100%); border-left: 5px solid var(--primary); color: var(--primary); padding: 15px; border-radius: 8px; font-weight: bold; font-size: 22px; margin-bottom: 20px; text-align: left; }
+        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; word-break: break-word; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
+        .visualizer-container { background: #111; border-radius: 12px; height: 80px; margin-bottom: 15px; border: 1px solid #333; }
+        canvas { width: 100%; height: 100%; display: block; }
+        .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; }
+        #startBtn { background: #e53e3e; color: #fff; }
+        #stopBtn { background: #4a5568; color: #fff; }
+        #uploadBtn { background: var(--primary); color: #000; grid-column: span 2; display: none; margin-top: 10px; }
+        .status-bar { margin-top: 15px; font-size: 14px; color: var(--primary); font-weight: bold; text-transform: uppercase; }
+    </style>
+</head>
+<body>
 
+<div class="studio-container">
+    <div id="displayTitle" class="admin-title-display"></div>
+    
+    <div class="input-row">
+        <input type="text" id="studentName" placeholder="請輸入姓名 (例如: Jackie)">
+    </div>
+
+    <div class="input-row">
+        <select id="lessonSelect" onchange="updateText()"></select>
+    </div>
+
+    <div id="textContainer" class="reading-text"></div>
+
+    <div class="visualizer-container">
+        <canvas id="visualizer"></canvas>
+    </div>
+
+    <div class="btn-box">
+        <button id="startBtn" class="btn" onclick="startRecording()">● START RECORDING</button>
+        <button id="stopBtn" class="btn" onclick="stopRecording()" disabled>■ STOP</button>
+        <button id="uploadBtn" class="btn" onclick="uploadAudio()">⬆ UPLOAD TO CLOUD</button>
+    </div>
+
+    <div id="status" class="status-bar">READY TO RECORD</div>
+</div>
+
+<script>
+    // --- 固定設定 ---
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
+    
+    // --- 老師修改區 ---
+    const CLASS_NAME = "G7";
+    const BOOK_TITLE = "Wonder - Summer";
+    const lessons = {
+        "Chapter 1 (1.3)": "'Let's have some whisky,' old Mr. White said. 'You need something to warm you on a cold night.' He got out a bottle of whisky and the two old friends began to drink and talk. The little family listened with interest to this visitor from far away and he told them many strange stories.",
+        "Chapter 2 (2.2)": "This monkey's paw can do strange and wonderful things. An old Indian gave the paw to one of my friends. My friend was a soldier, too. This paw is magic because it can give three wishes to three people. But these three wishes don’t bring happiness. The old Indian wanted to teach us something - it’s never good to want to change things.",
+        "Chapter 5 (5.1)": "Then Mrs. White asked the stranger, ‘ Can we see him? Can we see our son? Please take me to him. I want to see my son.’ But the stranger answered quickly, ‘No! It’s better not to see him. They couldn’t stop the machinery. He was in there for a long time. And at first, they couldn’t get out. He was……’ The man stopped."
+    };
+
+    // --- 邏輯程式碼 ---
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioContext;
+    let analyser;
+    let dataArray;
+    let animationId;
+
+    window.onload = () => {
+        document.getElementById('displayTitle').innerText = `${CLASS_NAME} | ${BOOK_TITLE}`;
+        const select = document.getElementById('lessonSelect');
+        Object.keys(lessons).forEach(key => {
+            let opt = document.createElement('option');
+            opt.value = key;
+            opt.innerHTML = key;
+            select.appendChild(opt);
+        });
+        updateText();
+    };
+
+    function updateText() {
+        const val = document.getElementById('lessonSelect').value;
+        document.getElementById('textContainer').innerText = lessons[val];
+    }
+
+    async function startRecording() {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+            document.getElementById('uploadBtn').style.display = 'block';
+            cancelAnimationFrame(animationId);
+        };
+
+        mediaRecorder.start();
+        setupVisualizer(stream);
+        
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
+        document.getElementById('status').innerText = "🔴 Recording...";
+    }
+
+    function stopRecording() {
+        mediaRecorder.stop();
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('stopBtn').disabled = true;
+        document.getElementById('status').innerText = "✅ Recording Finished";
+    }
+
+    function setupVisualizer(stream) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+
+        function draw() {
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let x = 0;
+            for(let i = 0; i < bufferLength; i++) {
+                let barHeight = dataArray[i] / 2;
+                ctx.fillStyle = `rgb(0, ${barHeight + 100}, 136)`;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                x += barWidth + 1;
+            }
+        }
+        draw();
+    }
+
+    function uploadAudio() {
+        const name = document.getElementById('studentName').value;
+        if(!name) return alert("請輸入學生姓名！");
+        
+        document.getElementById('status').innerText = "☁️ Uploading... Please wait";
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        
+        reader.onloadend = () => {
+            const base64Data = reader.result.split(',')[1];
+            const payload = {
+                name: name,
+                lesson: document.getElementById('lessonSelect').value,
+                className: CLASS_NAME,
+                bookTitle: BOOK_TITLE,
+                audioData: base64Data
+            };
+
+            fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("上傳成功！");
+                document.getElementById('status').innerText = "🚀 Upload Success!";
+                document.getElementById('uploadBtn').style.display = 'none';
+            })
+            .catch(err => {
+                console.error(err);
+                alert("上傳失敗，請檢查網路！");
+            });
+        };
+        reader.readAsDataURL(blob);
+    }
+</script>
+</body></html>
