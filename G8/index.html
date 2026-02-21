@@ -42,6 +42,7 @@
 </div>
 
 <script>
+    // 請確認您的 GAS 網址結尾包含 /exec
     const GAS_URL = "https://script.google.com/macros/s/AKfycbznQwq6elMdN5qUyApqv2aeIWyWS2MiZBaU-I1NSt8f-eBpYQBa61VFI0jUtKKUGwAbIw/exec"; 
 
     const lessons = {
@@ -76,10 +77,12 @@
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter your name!");
+        
         try {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             dest = audioCtx.createMediaStreamDestination();
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
             const micSource = audioCtx.createMediaStreamSource(stream);
             micSource.connect(dest);
 
@@ -96,14 +99,18 @@
                 document.getElementById('audioPlayer').style.display = 'block';
                 document.getElementById('uploadBtn').style.display = 'block';
             };
+
             chunks = [];
             tAudio.currentTime = 0;
             tAudio.play();
             recorder.start();
+            
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "🔴 RECORDING...";
-        } catch (err) { alert("Microphone error: " + err); }
+        } catch (err) {
+            alert("Microphone Error: " + err);
+        }
     };
 
     document.getElementById('stopBtn').onclick = () => {
@@ -112,28 +119,38 @@
         stream.getTracks().forEach(t => t.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
-        document.getElementById('status').innerText = "RECORDING STOPPED";
+        document.getElementById('status').innerText = "STOPPED - Ready to Send";
     };
 
     document.getElementById('uploadBtn').onclick = async () => {
-        document.getElementById('status').innerText = "🚀 SENDING...";
+        const statusEl = document.getElementById('status');
+        statusEl.innerText = "🚀 SENDING...";
+        
         const blob = await fetch(document.getElementById('audioPlayer').src).then(r => r.blob());
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = async () => {
             const base64 = reader.result.split(',')[1];
+            const payload = {
+                audio: base64,
+                className: "G8",
+                name: document.getElementById('studentName').value + "_" + document.getElementById('lessonSelect').value
+            };
+
             try {
                 await fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    body: JSON.stringify({
-                        audio: base64,
-                        className: "G8",
-                        name: document.getElementById('studentName').value + "_" + document.getElementById('lessonSelect').value
-                    })
+                    cache: 'no-cache',
+                    body: JSON.stringify(payload)
                 });
-                document.getElementById('status').innerText = "✅ SENT SUCCESSFULLY!";
-            } catch (e) { alert("Upload failed."); }
+                statusEl.innerText = "✅ SENT SUCCESSFULLY!";
+                alert("Upload complete! Please confirm with Jackie Teacher.");
+                document.getElementById('uploadBtn').style.display = 'none';
+            } catch (e) {
+                statusEl.innerText = "❌ ERROR - PLEASE TRY AGAIN";
+                alert("Upload failed.");
+            }
         };
     };
 </script></body></html>
