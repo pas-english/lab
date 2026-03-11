@@ -36,9 +36,10 @@
     <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;" playsinline></audio>
 </div><script>
     const CLASS_NAME = "G7", BOOK_TITLE = "The Elephant Man", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
+    
     const lessons = {
         "ch1": { 
-            text: "I would like to see him now. I can give you more than two pence. I gave him the money and he opened a door at the back of the shop. We went into a little room. The room was cold and dark, and there was a horrible smell in it. \n\nA creature sate one the chair behind a table. I say a creature, because it was wat a man or a woman, like you or me. The creature did not move or look at us. It sat very quietly on the chair in the cold, dark, dirty room.", 
+            text: "I’d like to see the elephant man, please. I gave him the money and he opened a door at the back of the shop. We went into a little room. The room was cold and dark, and there was a horrible smell in it.\n\nA creature sat one the chair behind a table. I say a creature, because it was wat a man or a woman, like you or me. The creature did not move or look at us. It sat very quietly on the chair in the cold, dark, dirty room.", 
             audio: "g7_ch1.mp3" 
         }
     };
@@ -52,7 +53,7 @@
         document.getElementById('lessonText').innerText = lessons[val].text;
         const tAudio = document.getElementById('teacherAudio');
         tAudio.src = lessons[val].audio;
-        tAudio.load(); // 強制重新讀取音檔
+        tAudio.load();
         document.getElementById('audioPlayer').style.display = 'none';
         document.getElementById('uploadBtn').style.display = 'none';
     }
