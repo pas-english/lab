@@ -37,13 +37,11 @@
 </div><script>
     const CLASS_NAME = "G8", BOOK_TITLE = "International Ghost", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
     
-    // 獲取當前網頁所在的基礎路徑 (例如 https://pas-english.github.io/lab/)
-    const basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-
     const lessons = {
         "ch2": { 
             text: "　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.\n\n　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.", 
-            audio: "G8/ch2-shadowing.mp3" 
+            // 使用您測試過 OK 的絕對網址
+            audio: "https://pas-english.github.io/lab/G8/ch2-shadowing.mp3" 
         }
     };
 
@@ -56,15 +54,11 @@
         const s = document.getElementById('status');
         document.getElementById('lessonText').innerText = lessons[val].text;
         
-        // 修正路徑解析：結合基礎路徑
-        tAudio.src = basePath + lessons[val].audio;
+        tAudio.src = lessons[val].audio;
         tAudio.load();
         
         tAudio.oncanplaythrough = () => s.innerText = "READY";
-        tAudio.onerror = () => {
-            console.error("Path failed: " + tAudio.src);
-            s.innerText = "❌ AUDIO LOAD FAILED";
-        };
+        tAudio.onerror = () => s.innerText = "❌ AUDIO ERROR";
     }
     window.onload = switchLesson;
 
@@ -76,14 +70,16 @@
         try {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') await audioCtx.resume();
+            
             const tAudio = document.getElementById('teacherAudio');
             
+            // 強制檢查載入狀態
             if (tAudio.readyState < 2) {
-                document.getElementById('status').innerText = "LOADING AUDIO...";
+                document.getElementById('status').innerText = "CONNECTING...";
                 await new Promise((resolve, reject) => {
                     tAudio.oncanplaythrough = resolve;
-                    tAudio.onerror = () => reject(new Error("Audio File Not Found"));
-                    setTimeout(() => reject(new Error("Loading Timeout")), 8000);
+                    tAudio.onerror = () => reject(new Error("Audio Load Error"));
+                    setTimeout(() => resolve(), 3000); // 3秒保險
                 });
             }
 
@@ -93,13 +89,11 @@
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
             const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
-            source.connect(dest);
+            source.connect(analyser); source.connect(dest);
             
             if (!tAudio.hasSource) {
                 const tSource = audioCtx.createMediaElementSource(tAudio);
-                tSource.connect(dest); 
-                tSource.connect(audioCtx.destination);
+                tSource.connect(dest); tSource.connect(audioCtx.destination);
                 tAudio.hasSource = true;
             }
 
@@ -132,10 +126,7 @@
             chunks = []; recorder.start();
             document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
-        } catch (e) { 
-            alert("Error: " + e.message); 
-            document.getElementById('status').innerText = "READY";
-        }
+        } catch (e) { alert("Mic Error: " + e.message); }
     };
 
     document.getElementById('stopBtn').onclick = () => {
