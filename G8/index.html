@@ -6,7 +6,7 @@
         body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
         .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 550px; width: 100%; text-align: center; border: 1px solid #333; }
         .admin-title-display { background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,255,136,0) 100%); border-left: 5px solid var(--primary); color: var(--primary); padding: 15px; border-radius: 8px; font-weight: bold; font-size: 22px; margin-bottom: 20px; text-align: left; }
-        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.7; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; }
+        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.8; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; word-break: break-word; }
         .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
         input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
         .visualizer-container { background: #111; border-radius: 12px; height: 80px; margin-bottom: 15px; border: 1px solid #333; overflow: hidden; }
@@ -35,16 +35,12 @@
     <p id="status" class="status-bar">READY</p>
     <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;" playsinline></audio>
 </div><script>
-    const CLASS_NAME = "G8", BOOK_TITLE = "5 Children and It", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
+    const CLASS_NAME = "G8", BOOK_TITLE = "International Ghost", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
     
-    // --- 教材資料區 ---
     const lessons = {
-        "ch1": { text: "The children loved the house. They knew immediately that they were going to be happy there. It was deep in the country and after two years in London, the children thought that it was wonderful. If you live in London and your family is not rich, you get bored because you cannot go to shops and theatres. In the country, you can go anywhere and do anything.", audio: "ch1 shadowing.mp3" },
-        "ch2": { text: "The children were angry and unhappy, but the policeman walked along the road behind them and they couldn’t escape. They held their heads down because they did not want anyone to see them, and suddenly Rober ran into someone. “Robert, what have you done now?” a voice cried. It was Martha and Baby.", audio: "ch2 shadowing.mp3" },
-        "ch3": { text: "The next day was very wet. It rained all day and the children could not go to see the Psammead. They stayed at home and wrote letters to their mother. But none of them told her about the Psammead. And the day after that, their Uncle Richard came and took them out, so they didn’t see the Psammead for two day. But Anthea spent a lot of time thinking about what to wish for.", audio: "ch3 shadowing.mp3" },
-        "ch5": { 
-            text: "Well, you children always ask for stupid things. But adults aren’t like that. If they get hold of me, they’ll want to wish for real, important things – like free houses for poor people, and new schools for children everywhere in the country, and money to give to old people. Boring things like that. And they’ll find a way to keep them after the sun goes down. And what will happen to the world if all those changes come at once? There’ll be terrible trouble.", 
-            audio: "https://raw.githubusercontent.com/pas-english/lab/main/G8/ch5%20shadowing.mp3" 
+        "ch2": { 
+            text: "　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.\n\n　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.", 
+            audio: "G8/g8_ch2.mp3" 
         }
     };
 
@@ -55,29 +51,45 @@
     function switchLesson() {
         const val = select.value;
         document.getElementById('lessonText').innerText = lessons[val].text;
-        document.getElementById('teacherAudio').src = lessons[val].audio;
+        const tAudio = document.getElementById('teacherAudio');
+        tAudio.src = lessons[val].audio;
+        tAudio.load();
         document.getElementById('audioPlayer').style.display = 'none';
         document.getElementById('uploadBtn').style.display = 'none';
+        document.getElementById('status').innerText = "READY";
     }
     window.onload = switchLesson;
 
     let recorder, chunks = [], audioCtx, dest, analyser, animationId;
+
     document.getElementById('startBtn').onclick = async () => {
-        if (!document.getElementById('studentName').value.trim()) return alert("Enter Name!");
+        const name = document.getElementById('studentName').value.trim();
+        if (!name) return alert("Please enter your name!");
+        
         try {
-            if (audioCtx) { await audioCtx.close(); }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // Android 穩定核心：使用者點擊時啟動音訊環境
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } else if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+
+            const tAudio = document.getElementById('teacherAudio');
+            await tAudio.play(); // 先觸發播放，解鎖 Android 音訊
+
             dest = audioCtx.createMediaStreamDestination();
             analyser = audioCtx.createAnalyser();
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioCtx.createMediaStreamSource(stream).connect(analyser);
             audioCtx.createMediaStreamSource(stream).connect(dest);
             
-            const tAudio = document.getElementById('teacherAudio');
-            const tSource = audioCtx.createMediaElementSource(tAudio);
-            tSource.connect(dest); 
-            tSource.connect(audioCtx.destination);
-            
+            if (!tAudio.hasSource) {
+                const tSource = audioCtx.createMediaElementSource(tAudio);
+                tSource.connect(dest); 
+                tSource.connect(audioCtx.destination);
+                tAudio.hasSource = true;
+            }
+
             const canvas = document.getElementById('visualizer'), ctx = canvas.getContext('2d');
             const draw = () => {
                 animationId = requestAnimationFrame(draw);
@@ -94,6 +106,7 @@
                 ctx.stroke();
             };
             draw();
+
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
@@ -103,11 +116,13 @@
                 document.getElementById('uploadBtn').style.display = 'block';
                 cancelAnimationFrame(animationId);
             };
-            chunks = []; tAudio.currentTime = 0; 
-            tAudio.play(); recorder.start();
-            document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
+            
+            chunks = [];
+            recorder.start();
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
-        } catch (e) { alert("Mic Error: " + e); }
+        } catch (e) { alert("Mic Error: " + e.message); }
     };
 
     document.getElementById('stopBtn').onclick = () => {
@@ -119,19 +134,12 @@
     document.getElementById('uploadBtn').onclick = async () => {
         const s = document.getElementById('status'); s.innerText = "UPLOADING...";
         const reader = new FileReader(); 
-        const blob = await fetch(document.getElementById('audioPlayer').src).then(r => r.blob());
-        reader.readAsDataURL(blob);
+        reader.readAsDataURL(await fetch(document.getElementById('audioPlayer').src).then(r => r.blob()));
         reader.onloadend = async () => {
             try {
-                const payload = {
-                    audio: reader.result.split(',')[1],
-                    className: CLASS_NAME,
-                    bookTitle: BOOK_TITLE,
-                    name: document.getElementById('studentName').value + "_" + select.value
-                };
-                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload)});
+                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ audio: reader.result.split(',')[1], className: CLASS_NAME, name: document.getElementById('studentName').value + "_" + BOOK_TITLE + "_" + select.value })});
                 s.innerText = "SENT SUCCESS!"; alert("Success!");
-            } catch (e) { alert("Upload Fail"); s.innerText = "UPLOAD FAILED"; }
+            } catch (e) { alert("Fail"); }
         };
     };
 </script></body></html>
