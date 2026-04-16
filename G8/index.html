@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PAS Recording Lab</title>
+    <title>G8 Recording Lab</title>
     <style>
         :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
         body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -37,11 +37,11 @@
 </div><script>
     const CLASS_NAME = "G8", BOOK_TITLE = "International Ghost", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
     
-    // --- 這裡修正了音檔路徑，處理了空格 (%20) 並使用 Raw 直連 ---
     const lessons = {
-        "ch2": { 
+        "story 2": { 
             text: "　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.\n\n　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.", 
-            audio: "https://raw.githubusercontent.com/pas-english/lab/main/G8/ch5%20shadowing.mp3" 
+            // 這裡修正為您提供的真實檔名
+            audio: "G8/story%202%20-%20shadowing.mp3" 
         }
     };
 
@@ -69,12 +69,11 @@
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const tAudio = document.getElementById('teacherAudio');
             
-            // 確保音檔已準備好，否則 Windows 上的 Chrome 會噴 no supported sources
             if (tAudio.readyState < 2) {
                 document.getElementById('status').innerText = "Loading Audio...";
-                await new Promise(resolve => {
+                await new Promise((resolve, reject) => {
                     tAudio.oncanplaythrough = resolve;
-                    tAudio.onerror = () => { throw new Error("Audio file not found or path error"); };
+                    tAudio.onerror = () => reject(new Error("Audio Load Failed - Check Filename"));
                 });
             }
 
@@ -126,7 +125,8 @@
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
         } catch (e) { 
-            alert("Error: " + e.message + "\n請確認麥克風是否已接好並允許使用。"); 
+            alert("Error: " + e.message); 
+            document.getElementById('status').innerText = "READY";
         }
     };
 
