@@ -7,25 +7,29 @@
         .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 550px; width: 100%; text-align: center; border: 1px solid #333; }
         .admin-title-display { background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,255,136,0) 100%); border-left: 5px solid var(--primary); color: var(--primary); padding: 15px; border-radius: 8px; font-weight: bold; font-size: 22px; margin-bottom: 20px; text-align: left; }
         .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.8; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; word-break: break-word; }
-        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
         .visualizer-container { background: #111; border-radius: 12px; height: 80px; margin-bottom: 15px; border: 1px solid #333; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; box-sizing: border-box; margin-bottom: 15px; }
         .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; }
         #startBtn { background: #e53e3e; color: #fff; }
         #stopBtn { background: #4a5568; color: #fff; }
         #uploadBtn { background: var(--primary); color: #000; grid-column: span 2; display: none; margin-top: 10px; }
         .status-bar { margin-top: 15px; font-size: 14px; color: var(--primary); font-weight: bold; }
-    </style></head><body><div class="studio-container">
+    </style>
+</head>
+<body>
+<div class="studio-container">
     <h2 style="margin:0 0 5px 0; font-size: 10px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB</h2>
     <div class="admin-title-display">International Ghost - Ch2</div>
-    <div class="input-row"><input type="text" id="studentName" placeholder="Enter Name"></div>
+    <input type="text" id="studentName" placeholder="Enter Your Name">
     <div class="reading-text">　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.
 
 　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.</div>
     <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
-    <audio id="teacherAudio" src="G8/ch2-shadowing.mp3" crossorigin="anonymous" preload="auto"></audio>
+    
+    <audio id="teacherAudio" src="https://pas-english.github.io/lab/G8/ch2-shadowing.mp3" preload="auto"></audio>
+    
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START</button>
         <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
@@ -33,40 +37,29 @@
     </div>
     <p id="status" class="status-bar">READY</p>
     <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;"></audio>
-</div><script>
+</div>
+
+<script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
-    let recorder, chunks = [], audioCtx, dest, analyser, animationId;
+    let recorder, chunks = [], audioCtx, analyser, micStream, animationId;
 
     document.getElementById('startBtn').onclick = async () => {
-        if (!document.getElementById('studentName').value.trim()) return alert("Please enter Name!");
-        
+        const name = document.getElementById('studentName').value.trim();
+        if (!name) return alert("Please enter Name!");
+
         try {
-            // 1. 初始化 AudioContext
+            // 1. 初始化音訊
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
-
-            // 2. 獲取麥克風
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // 3. 建立節點
-            dest = audioCtx.createMediaStreamDestination();
-            analyser = audioCtx.createAnalyser();
-            const micSource = audioCtx.createMediaStreamSource(stream);
-            
-            // 麥克風 -> 視覺化 & 錄音
-            micSource.connect(analyser);
-            micSource.connect(dest);
-
-            // 4. 處理老師音檔 (這是關鍵：必須在按鈕點擊後重新 play)
             const tAudio = document.getElementById('teacherAudio');
-            if (!tAudio.hasSource) {
-                const tSource = audioCtx.createMediaElementSource(tAudio);
-                tSource.connect(dest); // 混入錄音
-                tSource.connect(audioCtx.destination); // 輸出到耳機
-                tAudio.hasSource = true;
-            }
+            
+            // 2. 獲取麥克風（不進行混音，直接錄製）
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // 3. 視覺化設定
+            analyser = audioCtx.createAnalyser();
+            const source = audioCtx.createMediaStreamSource(micStream);
+            source.connect(analyser);
 
-            // 5. 繪製波型
             const canvas = document.getElementById('visualizer'), ctx = canvas.getContext('2d');
             const draw = () => {
                 animationId = requestAnimationFrame(draw);
@@ -84,8 +77,8 @@
             };
             draw();
 
-            // 6. 啟動
-            recorder = new MediaRecorder(dest.stream);
+            // 4. 開始錄音
+            recorder = new MediaRecorder(micStream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/mp4' });
@@ -95,15 +88,14 @@
             };
 
             chunks = [];
-            tAudio.currentTime = 0;
-            await tAudio.play(); // 播放老師聲音
-            recorder.start();
+            tAudio.play(); // 先播聲音
+            recorder.start(); // 開始錄學生的聲音
             
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
-        } catch (err) {
-            alert("Error: " + err.message);
+        } catch (e) {
+            alert("Error: " + e.message);
         }
     };
 
@@ -111,6 +103,8 @@
         recorder.stop();
         document.getElementById('teacherAudio').pause();
         cancelAnimationFrame(animationId);
+        // 停止麥克風
+        micStream.getTracks().forEach(track => track.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
         document.getElementById('status').innerText = "DONE";
@@ -136,4 +130,5 @@
             } catch (e) { alert("Upload Fail"); }
         };
     };
-</script></body></html>
+</script>
+</body></html>
