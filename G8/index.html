@@ -1,157 +1,82 @@
-<!DOCTYPE html><html lang="zh-TW"><head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>G8 Recording Lab</title>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Recording Lab</title>
     <style>
-        :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
-        body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .studio-container { background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); max-width: 550px; width: 100%; text-align: center; border: 1px solid #333; }
-        .admin-title-display { background: linear-gradient(135deg, rgba(0,255,136,0.1) 0%, rgba(0,255,136,0) 100%); border-left: 5px solid var(--primary); color: var(--primary); padding: 15px; border-radius: 8px; font-weight: bold; font-size: 22px; margin-bottom: 20px; text-align: left; }
-        .reading-text { background: #2d333d; border: 1px solid #444; padding: 20px; border-radius: 16px; text-align: left; font-size: 18px; line-height: 1.8; color: #fff; margin: 15px 0; min-height: 150px; white-space: pre-wrap; word-break: break-word; }
-        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        input, select { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1a1d23; color: #fff; font-size: 16px; }
-        .visualizer-container { background: #111; border-radius: 12px; height: 80px; margin-bottom: 15px; border: 1px solid #333; overflow: hidden; }
-        canvas { width: 100%; height: 100%; display: block; }
-        .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn { padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 17px; cursor: pointer; transition: 0.3s; }
-        #startBtn { background: #e53e3e; color: #fff; }
-        #stopBtn { background: #4a5568; color: #fff; }
-        #uploadBtn { background: var(--primary); color: #000; grid-column: span 2; display: none; margin-top: 10px; }
-        .status-bar { margin-top: 15px; font-size: 14px; color: var(--primary); font-weight: bold; }
-    </style></head><body><div class="studio-container">
-    <h2 style="margin:0 0 5px 0; font-size: 10px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB - G8</h2>
-    <div class="admin-title-display" id="mainTitle">International Ghost</div>
-    <div class="input-row">
-        <select id="lessonSelect" onchange="switchLesson()"></select>
-        <input type="text" id="studentName" placeholder="Name">
+        /* 這裡放您原本的 CSS */
+        body { background: #1a1d23; color: white; font-family: sans-serif; text-align: center; }
+        .reading-text { background: #2d333d; padding: 20px; border-radius: 10px; text-align: left; white-space: pre-wrap; margin: 20px auto; max-width: 500px; }
+    </style>
+</head>
+<body>
+    <h2>G8 Recording</h2>
+    <input type="text" id="studentName" placeholder="Name">
+    <div class="reading-text">
+　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.
+
+　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.
     </div>
-    <div id="lessonText" class="reading-text"></div>
-    <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
-    <audio id="teacherAudio" preload="auto" crossorigin="anonymous" playsinline></audio>
-    <div class="btn-box">
-        <button id="startBtn" class="btn">🔴 START</button>
-        <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
-        <button id="uploadBtn" class="btn">📤 SEND TO TEACHER</button>
-    </div>
-    <p id="status" class="status-bar">READY</p>
-    <audio id="audioPlayer" controls style="display: none; width: 100%; margin-top: 15px;" playsinline></audio>
-</div><script>
-    const CLASS_NAME = "G8", BOOK_TITLE = "International Ghost", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
-    
-    const lessons = {
-        "ch2": { 
-            text: "　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.\n\n　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.", 
-            // 使用您測試過 OK 的絕對網址
-            audio: "https://pas-english.github.io/lab/G8/ch2-shadowing.mp3" 
-        }
-    };
+    <audio id="teacherAudio" src="G8/ch2-shadowing.mp3" crossorigin="anonymous"></audio>
+    <button id="startBtn">START</button>
+    <button id="stopBtn" disabled>STOP</button>
+    <button id="uploadBtn" style="display:none">UPLOAD</button>
+    <p id="status">READY</p>
 
-    const select = document.getElementById('lessonSelect');
-    Object.keys(lessons).forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.innerText = k.toUpperCase(); select.appendChild(opt); });
-    
-    function switchLesson() {
-        const val = select.value;
-        const tAudio = document.getElementById('teacherAudio');
-        const s = document.getElementById('status');
-        document.getElementById('lessonText').innerText = lessons[val].text;
-        
-        tAudio.src = lessons[val].audio;
-        tAudio.load();
-        
-        tAudio.oncanplaythrough = () => s.innerText = "READY";
-        tAudio.onerror = () => s.innerText = "❌ AUDIO ERROR";
-    }
-    window.onload = switchLesson;
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
+        let recorder, chunks = [], audioCtx, dest;
 
-    let recorder, chunks = [], audioCtx, dest, analyser, animationId;
-
-    document.getElementById('startBtn').onclick = async () => {
-        const name = document.getElementById('studentName').value.trim();
-        if (!name) return alert("Please enter Name!");
-        try {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
+        document.getElementById('startBtn').onclick = async () => {
+            if(!audioCtx) audioCtx = new AudioContext();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            dest = audioCtx.createMediaStreamDestination();
             
             const tAudio = document.getElementById('teacherAudio');
-            
-            // 強制檢查載入狀態
-            if (tAudio.readyState < 2) {
-                document.getElementById('status').innerText = "CONNECTING...";
-                await new Promise((resolve, reject) => {
-                    tAudio.oncanplaythrough = resolve;
-                    tAudio.onerror = () => reject(new Error("Audio Load Error"));
-                    setTimeout(() => resolve(), 3000); // 3秒保險
-                });
-            }
-
-            await tAudio.play();
-            dest = audioCtx.createMediaStreamDestination();
-            analyser = audioCtx.createAnalyser();
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
             const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser); source.connect(dest);
+            source.connect(dest);
             
-            if (!tAudio.hasSource) {
-                const tSource = audioCtx.createMediaElementSource(tAudio);
-                tSource.connect(dest); tSource.connect(audioCtx.destination);
-                tAudio.hasSource = true;
-            }
-
-            const canvas = document.getElementById('visualizer'), ctx = canvas.getContext('2d');
-            const draw = () => {
-                animationId = requestAnimationFrame(draw);
-                const data = new Uint8Array(analyser.frequencyBinCount);
-                analyser.getByteTimeDomainData(data);
-                ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width,canvas.height);
-                ctx.lineWidth = 2; ctx.strokeStyle = '#00ff88'; ctx.beginPath();
-                let x = 0, slice = canvas.width/data.length;
-                for(let i=0; i<data.length; i++){
-                    let v = data[i]/128.0, y = v*canvas.height/2;
-                    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-                    x+=slice;
-                }
-                ctx.stroke();
-            };
-            draw();
+            const tSource = audioCtx.createMediaElementSource(tAudio);
+            tSource.connect(dest);
+            tSource.connect(audioCtx.destination);
 
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
-            recorder.onstop = () => {
+            recorder.onstop = async () => {
                 const blob = new Blob(chunks, { type: 'audio/mp4' });
-                document.getElementById('audioPlayer').src = URL.createObjectURL(blob);
-                document.getElementById('audioPlayer').style.display = 'block';
+                window.recordedBlob = blob;
                 document.getElementById('uploadBtn').style.display = 'block';
-                cancelAnimationFrame(animationId);
             };
-            chunks = []; recorder.start();
-            document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
-            document.getElementById('status').innerText = "RECORDING...";
-        } catch (e) { alert("Mic Error: " + e.message); }
-    };
 
-    document.getElementById('stopBtn').onclick = () => {
-        recorder.stop(); document.getElementById('teacherAudio').pause();
-        document.getElementById('startBtn').disabled = false; document.getElementById('stopBtn').disabled = true;
-        document.getElementById('status').innerText = "DONE";
-    };
+            chunks = [];
+            tAudio.play();
+            recorder.start();
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+        };
 
-    document.getElementById('uploadBtn').onclick = async () => {
-        const s = document.getElementById('status'); s.innerText = "UPLOADING...";
-        const reader = new FileReader(); 
-        const blob = await fetch(document.getElementById('audioPlayer').src).then(r => r.blob());
-        reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-            try {
-                await fetch(GAS_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ 
-                        audio: reader.result.split(',')[1], 
-                        className: CLASS_NAME, 
-                        name: document.getElementById('studentName').value + "_" + BOOK_TITLE + "_" + select.value 
+        document.getElementById('stopBtn').onclick = () => {
+            recorder.stop();
+            document.getElementById('teacherAudio').pause();
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        };
+
+        document.getElementById('uploadBtn').onclick = () => {
+            const reader = new FileReader();
+            reader.readAsDataURL(window.recordedBlob);
+            reader.onloadend = () => {
+                fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        audio: reader.result.split(',')[1],
+                        name: document.getElementById('studentName').value + "_G8_Ch2"
                     })
                 });
-                s.innerText = "SENT SUCCESS!"; alert("Success!");
-            } catch (e) { alert("Upload Fail"); }
+                alert("Sent!");
+            };
         };
-    };
-</script></body></html>
+    </script>
+</body>
+</html>
