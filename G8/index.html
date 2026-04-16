@@ -18,8 +18,8 @@
         #uploadBtn { background: var(--primary); color: #000; grid-column: span 2; display: none; margin-top: 10px; }
         .status-bar { margin-top: 15px; font-size: 14px; color: var(--primary); font-weight: bold; }
     </style></head><body><div class="studio-container">
-    <h2 style="margin:0 0 5px 0; font-size: 10px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB</h2>
-    <div class="admin-title-display" id="mainTitle"></div>
+    <h2 style="margin:0 0 5px 0; font-size: 10px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB - G8</h2>
+    <div class="admin-title-display" id="mainTitle">International Ghost</div>
     <div class="input-row">
         <select id="lessonSelect" onchange="switchLesson()"></select>
         <input type="text" id="studentName" placeholder="Name">
@@ -37,25 +37,34 @@
 </div><script>
     const CLASS_NAME = "G8", BOOK_TITLE = "International Ghost", GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
     
+    // 獲取當前網頁所在的基礎路徑 (例如 https://pas-english.github.io/lab/)
+    const basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+
     const lessons = {
-        "story 2": { 
+        "ch2": { 
             text: "　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.\n\n　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.", 
-            // 這裡修正為您提供的真實檔名
-            audio: "G8/story%202%20-%20shadowing.mp3" 
+            audio: "G8/ch2-shadowing.mp3" 
         }
     };
 
     const select = document.getElementById('lessonSelect');
     Object.keys(lessons).forEach(k => { const opt = document.createElement('option'); opt.value = k; opt.innerText = k.toUpperCase(); select.appendChild(opt); });
-    document.getElementById('mainTitle').innerText = BOOK_TITLE;
     
     function switchLesson() {
         const val = select.value;
         const tAudio = document.getElementById('teacherAudio');
+        const s = document.getElementById('status');
         document.getElementById('lessonText').innerText = lessons[val].text;
-        tAudio.src = lessons[val].audio;
+        
+        // 修正路徑解析：結合基礎路徑
+        tAudio.src = basePath + lessons[val].audio;
         tAudio.load();
-        document.getElementById('status').innerText = "READY";
+        
+        tAudio.oncanplaythrough = () => s.innerText = "READY";
+        tAudio.onerror = () => {
+            console.error("Path failed: " + tAudio.src);
+            s.innerText = "❌ AUDIO LOAD FAILED";
+        };
     }
     window.onload = switchLesson;
 
@@ -64,16 +73,17 @@
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter Name!");
-        
         try {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
             const tAudio = document.getElementById('teacherAudio');
             
             if (tAudio.readyState < 2) {
-                document.getElementById('status').innerText = "Loading Audio...";
+                document.getElementById('status').innerText = "LOADING AUDIO...";
                 await new Promise((resolve, reject) => {
                     tAudio.oncanplaythrough = resolve;
-                    tAudio.onerror = () => reject(new Error("Audio Load Failed - Check Filename"));
+                    tAudio.onerror = () => reject(new Error("Audio File Not Found"));
+                    setTimeout(() => reject(new Error("Loading Timeout")), 8000);
                 });
             }
 
@@ -82,8 +92,9 @@
             analyser = audioCtx.createAnalyser();
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
-            audioCtx.createMediaStreamSource(stream).connect(analyser);
-            audioCtx.createMediaStreamSource(stream).connect(dest);
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+            source.connect(dest);
             
             if (!tAudio.hasSource) {
                 const tSource = audioCtx.createMediaElementSource(tAudio);
@@ -118,11 +129,8 @@
                 document.getElementById('uploadBtn').style.display = 'block';
                 cancelAnimationFrame(animationId);
             };
-            
-            chunks = [];
-            recorder.start();
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
+            chunks = []; recorder.start();
+            document.getElementById('startBtn').disabled = true; document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
         } catch (e) { 
             alert("Error: " + e.message); 
@@ -143,11 +151,14 @@
         reader.readAsDataURL(blob);
         reader.onloadend = async () => {
             try {
-                await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ 
-                    audio: reader.result.split(',')[1], 
-                    className: CLASS_NAME, 
-                    name: document.getElementById('studentName').value + "_" + select.value 
-                })});
+                await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        audio: reader.result.split(',')[1], 
+                        className: CLASS_NAME, 
+                        name: document.getElementById('studentName').value + "_" + BOOK_TITLE + "_" + select.value 
+                    })
+                });
                 s.innerText = "SENT SUCCESS!"; alert("Success!");
             } catch (e) { alert("Upload Fail"); }
         };
