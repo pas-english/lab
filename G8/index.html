@@ -22,13 +22,13 @@
 <div class="studio-container">
     <h2 style="margin:0 0 5px 0; font-size: 10px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB</h2>
     <div class="admin-title-display">G8 | International Ghost</div>
-    <input type="text" id="studentName" placeholder="Enter Your Name">
+    <input type="text" id="studentName" placeholder="Student Name">
     <div class="reading-text">　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.
 
 　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.</div>
     <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
     
-    <audio id="teacherAudio" src="G8/ch2-shadowing.mp3" crossorigin="anonymous"></audio>
+    <audio id="teacherAudio" src="G8/ch2-shadowing.mp3" crossorigin="anonymous" preload="auto"></audio>
     
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START RECORDING</button>
@@ -43,38 +43,35 @@
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
     
     let audioCtx, recorder, chunks = [], animationId;
-    let dest, analyser;
+    let dest, analyser, tSource;
 
     document.getElementById('startBtn').onclick = async () => {
-        const name = document.getElementById('studentName').value.trim();
-        if (!name) return alert("Please enter Name!");
+        if (!document.getElementById('studentName').value.trim()) return alert("Enter Name!");
 
         try {
-            // 1. 建立 AudioContext (瀏覽器點擊後啟動)
+            // 點擊後立刻啟動音訊
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') await audioCtx.resume();
 
             const tAudio = document.getElementById('teacherAudio');
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
-            // 2. 建立節點
             dest = audioCtx.createMediaStreamDestination();
             analyser = audioCtx.createAnalyser();
             
-            // 3. 連結麥克風
+            // 麥克風連結
             const micSource = audioCtx.createMediaStreamSource(stream);
-            micSource.connect(analyser);
-            micSource.connect(dest);
+            micSource.connect(analyser); // 視覺化
+            micSource.connect(dest);     // 錄音
 
-            // 4. 連結老師音檔 (這是「之前沒問題」的關鍵寫法)
-            if (!tAudio.hasSource) {
-                const tSource = audioCtx.createMediaElementSource(tAudio);
-                tSource.connect(dest); // 混入錄音
-                tSource.connect(audioCtx.destination); // 輸出到喇叭
-                tAudio.hasSource = true;
+            // 老師音檔連結 (傳統 ElementSource 模式，最穩定)
+            if (!tSource) {
+                tSource = audioCtx.createMediaElementSource(tAudio);
+                tSource.connect(dest);               // 混入錄音檔
+                tSource.connect(audioCtx.destination); // 輸出到耳機/喇叭
             }
 
-            // 5. 波型繪製
+            // 繪製波型
             const canvas = document.getElementById('visualizer'), ctx = canvas.getContext('2d');
             const draw = () => {
                 animationId = requestAnimationFrame(draw);
@@ -92,7 +89,7 @@
             };
             draw();
 
-            // 6. 錄音啟動
+            // 啟動錄製
             recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
@@ -112,7 +109,7 @@
             document.getElementById('status').innerText = "RECORDING (MIXED)...";
 
         } catch (e) {
-            alert("Mic Error: " + e.message);
+            alert("Error: " + e.message);
         }
     };
 
@@ -137,11 +134,11 @@
                     mode: 'no-cors',
                     body: JSON.stringify({
                         audio: reader.result.split(',')[1],
-                        name: document.getElementById('studentName').value + "_G8_MIXED"
+                        name: document.getElementById('studentName').value + "_G8_Shadowing"
                     })
                 });
                 document.getElementById('status').innerText = "SENT SUCCESS!";
-                alert("Upload Success!");
+                alert("Success!");
             } catch (e) { alert("Upload Fail"); }
         };
     };
