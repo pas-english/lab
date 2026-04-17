@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>G8 Recording Lab</title>
+    <title>G8 Shadowing Lab</title>
     <style>
         :root { --primary: #00ff88; --bg: #1a1d23; --card: #252932; --text: #e0e6ed; }
         body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 20px; margin: 0; }
@@ -21,17 +21,14 @@
 <body>
 <div class="studio-container">
     <h2 style="margin:0 0 5px 0; font-size: 10px; color: #888; text-align: left; letter-spacing: 2px;">PAS ENGLISH LAB</h2>
-    <div class="admin-title-display">International Ghost - Ch2</div>
+    <div class="admin-title-display">G8 | International Ghost</div>
     <input type="text" id="studentName" placeholder="Enter Your Name">
     <div class="reading-text">　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.
 
 　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.</div>
     <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
-    
-    <audio id="teacherAudio" src="https://pas-english.github.io/lab/G8/ch2-shadowing.mp3" preload="auto"></audio>
-    
     <div class="btn-box">
-        <button id="startBtn" class="btn">🔴 START</button>
+        <button id="startBtn" class="btn">🔴 START RECORDING</button>
         <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
         <button id="uploadBtn" class="btn">📤 SEND TO TEACHER</button>
     </div>
@@ -41,25 +38,52 @@
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
-    let recorder, chunks = [], audioCtx, analyser, micStream, animationId;
+    const AUDIO_URL = "G8/ch2-shadowing.mp3"; // 相對路徑
+    
+    let audioCtx, recorder, chunks = [], animationId;
+    let teacherSource, micSource, mixerDest;
 
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter Name!");
 
         try {
-            // 1. 初始化音訊
+            document.getElementById('status').innerText = "INITIALIZING...";
+            
+            // 1. 初始化音訊環境
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const tAudio = document.getElementById('teacherAudio');
-            
-            // 2. 獲取麥克風（不進行混音，直接錄製）
-            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // 3. 視覺化設定
-            analyser = audioCtx.createAnalyser();
-            const source = audioCtx.createMediaStreamSource(micStream);
-            source.connect(analyser);
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
 
+            // 2. 獲取麥克風
+            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // 3. 【關鍵：用 Fetch 獲取音檔避免 CORS 錯誤】
+            const response = await fetch(AUDIO_URL);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioCtx.decodeAudioBuffer(arrayBuffer);
+
+            // 4. 設定混音節點
+            mixerDest = audioCtx.createMediaStreamDestination();
+            const analyser = audioCtx.createAnalyser();
+            
+            // 老師音軌設定
+            teacherSource = audioCtx.createBufferSource();
+            teacherSource.buffer = audioBuffer;
+            
+            // 麥克風音軌設定
+            micSource = audioCtx.createMediaStreamSource(micStream);
+
+            // 連接到混音器（錄音用）
+            teacherSource.connect(mixerDest);
+            micSource.connect(mixerDest);
+            
+            // 連接到播放器（學生聽老師聲音用）
+            teacherSource.connect(audioCtx.destination);
+            
+            // 連接到視覺化分析（看麥克風波型用）
+            micSource.connect(analyser);
+
+            // 5. 繪製波型
             const canvas = document.getElementById('visualizer'), ctx = canvas.getContext('2d');
             const draw = () => {
                 animationId = requestAnimationFrame(draw);
@@ -77,8 +101,8 @@
             };
             draw();
 
-            // 4. 開始錄音
-            recorder = new MediaRecorder(micStream);
+            // 6. 啟動錄製
+            recorder = new MediaRecorder(mixerDest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/mp4' });
@@ -88,23 +112,24 @@
             };
 
             chunks = [];
-            tAudio.play(); // 先播聲音
-            recorder.start(); // 開始錄學生的聲音
-            
+            teacherSource.start(0);
+            recorder.start();
+
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
-            document.getElementById('status').innerText = "RECORDING...";
+            document.getElementById('status').innerText = "RECORDING (MIXED)...";
+
         } catch (e) {
             alert("Error: " + e.message);
+            console.error(e);
+            document.getElementById('status').innerText = "READY";
         }
     };
 
     document.getElementById('stopBtn').onclick = () => {
-        recorder.stop();
-        document.getElementById('teacherAudio').pause();
+        if (recorder) recorder.stop();
+        if (teacherSource) teacherSource.stop();
         cancelAnimationFrame(animationId);
-        // 停止麥克風
-        micStream.getTracks().forEach(track => track.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
         document.getElementById('status').innerText = "DONE";
@@ -122,11 +147,11 @@
                     mode: 'no-cors',
                     body: JSON.stringify({
                         audio: reader.result.split(',')[1],
-                        name: document.getElementById('studentName').value + "_G8_CH2"
+                        name: document.getElementById('studentName').value + "_G8_MIXED"
                     })
                 });
                 document.getElementById('status').innerText = "SENT SUCCESS!";
-                alert("Upload Success!");
+                alert("Shadowing Sent Successfully!");
             } catch (e) { alert("Upload Fail"); }
         };
     };
