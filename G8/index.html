@@ -26,7 +26,11 @@
     <div class="reading-text">　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.
 
 　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.</div>
+    
     <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
+    
+    <audio id="teacherAudio" src="G8/ch2-shadowing.mp3" preload="auto"></audio>
+    
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START RECORDING</button>
         <button id="stopBtn" class="btn" disabled>⏹ STOP</button>
@@ -38,41 +42,23 @@
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
-    const AUDIO_URL = "G8/ch2-shadowing.mp3"; 
     
-    let audioCtx, recorder, chunks = [], animationId;
-    let teacherSource, mixerDest;
+    let audioCtx, recorder, chunks = [], animationId, micStream;
 
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter Name!");
 
         try {
-            document.getElementById('status').innerText = "LOADING AUDIO...";
-            
+            // 1. 啟動音訊 (不混音，只錄麥克風)
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
-
-            const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
-            // 修正處：decodeAudioData
-            const response = await fetch(AUDIO_URL);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-            mixerDest = audioCtx.createMediaStreamDestination();
             const analyser = audioCtx.createAnalyser();
-            
-            teacherSource = audioCtx.createBufferSource();
-            teacherSource.buffer = audioBuffer;
-            
-            const micSource = audioCtx.createMediaStreamSource(micStream);
+            const source = audioCtx.createMediaStreamSource(micStream);
+            source.connect(analyser);
 
-            teacherSource.connect(mixerDest);
-            micSource.connect(mixerDest);
-            teacherSource.connect(audioCtx.destination);
-            micSource.connect(analyser); // 視覺化只跟隨麥克風
-
+            // 2. 繪製波型 (連動麥克風)
             const canvas = document.getElementById('visualizer'), ctx = canvas.getContext('2d');
             const draw = () => {
                 animationId = requestAnimationFrame(draw);
@@ -90,7 +76,8 @@
             };
             draw();
 
-            recorder = new MediaRecorder(mixerDest.stream);
+            // 3. 錄製
+            recorder = new MediaRecorder(micStream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/mp4' });
@@ -100,23 +87,23 @@
             };
 
             chunks = [];
-            teacherSource.start(0);
+            document.getElementById('teacherAudio').play(); // 播放老師聲音
             recorder.start();
-
+            
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
             document.getElementById('status').innerText = "RECORDING...";
 
         } catch (e) {
             alert("Error: " + e.message);
-            document.getElementById('status').innerText = "READY";
         }
     };
 
     document.getElementById('stopBtn').onclick = () => {
-        if (recorder) recorder.stop();
-        if (teacherSource) { try { teacherSource.stop(); } catch(e){} }
+        recorder.stop();
+        document.getElementById('teacherAudio').pause();
         cancelAnimationFrame(animationId);
+        micStream.getTracks().forEach(track => track.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
         document.getElementById('status').innerText = "DONE";
@@ -134,11 +121,11 @@
                     mode: 'no-cors',
                     body: JSON.stringify({
                         audio: reader.result.split(',')[1],
-                        name: document.getElementById('studentName').value + "_G8_MIXED"
+                        name: document.getElementById('studentName').value + "_G8_Shadowing"
                     })
                 });
                 document.getElementById('status').innerText = "SENT SUCCESS!";
-                alert("Success!");
+                alert("Shadowing Sent!");
             } catch (e) { alert("Upload Fail"); }
         };
     };
