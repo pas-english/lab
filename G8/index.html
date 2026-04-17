@@ -26,10 +26,9 @@
     <div class="reading-text">　　He was waiting for a car to pass by, but the road was empty. There were no houses and no traffic. Abdul was angry with his car, because it did not go anymore.
 
 　　He was angry with himself, because he did not check the car before he left Buraimi. And he was angry with his mobile phone too, because there was no signal. He couldn't use it to phone for help.</div>
-    
     <div class="visualizer-container"><canvas id="visualizer"></canvas></div>
     
-    <audio id="teacherAudio" src="G8/ch2-shadowing.mp3" preload="auto"></audio>
+    <audio id="teacherAudio" src="G8/ch2-shadowing.mp3" crossorigin="anonymous"></audio>
     
     <div class="btn-box">
         <button id="startBtn" class="btn">🔴 START RECORDING</button>
@@ -43,22 +42,39 @@
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyqKj-_QuK1MI7b5hl3sV4p8yjeaAAriBV4I_XbTHUi46gyGBJQoBPCJey_Okbhieaf/exec";
     
-    let audioCtx, recorder, chunks = [], animationId, micStream;
+    let audioCtx, recorder, chunks = [], animationId;
+    let dest, analyser;
 
     document.getElementById('startBtn').onclick = async () => {
         const name = document.getElementById('studentName').value.trim();
         if (!name) return alert("Please enter Name!");
 
         try {
-            // 1. 啟動音訊 (不混音，只錄麥克風)
+            // 1. 建立 AudioContext (瀏覽器點擊後啟動)
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            const analyser = audioCtx.createAnalyser();
-            const source = audioCtx.createMediaStreamSource(micStream);
-            source.connect(analyser);
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-            // 2. 繪製波型 (連動麥克風)
+            const tAudio = document.getElementById('teacherAudio');
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // 2. 建立節點
+            dest = audioCtx.createMediaStreamDestination();
+            analyser = audioCtx.createAnalyser();
+            
+            // 3. 連結麥克風
+            const micSource = audioCtx.createMediaStreamSource(stream);
+            micSource.connect(analyser);
+            micSource.connect(dest);
+
+            // 4. 連結老師音檔 (這是「之前沒問題」的關鍵寫法)
+            if (!tAudio.hasSource) {
+                const tSource = audioCtx.createMediaElementSource(tAudio);
+                tSource.connect(dest); // 混入錄音
+                tSource.connect(audioCtx.destination); // 輸出到喇叭
+                tAudio.hasSource = true;
+            }
+
+            // 5. 波型繪製
             const canvas = document.getElementById('visualizer'), ctx = canvas.getContext('2d');
             const draw = () => {
                 animationId = requestAnimationFrame(draw);
@@ -76,8 +92,8 @@
             };
             draw();
 
-            // 3. 錄製
-            recorder = new MediaRecorder(micStream);
+            // 6. 錄音啟動
+            recorder = new MediaRecorder(dest.stream);
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/mp4' });
@@ -87,15 +103,16 @@
             };
 
             chunks = [];
-            document.getElementById('teacherAudio').play(); // 播放老師聲音
+            tAudio.currentTime = 0;
+            tAudio.play();
             recorder.start();
-            
+
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
-            document.getElementById('status').innerText = "RECORDING...";
+            document.getElementById('status').innerText = "RECORDING (MIXED)...";
 
         } catch (e) {
-            alert("Error: " + e.message);
+            alert("Mic Error: " + e.message);
         }
     };
 
@@ -103,7 +120,6 @@
         recorder.stop();
         document.getElementById('teacherAudio').pause();
         cancelAnimationFrame(animationId);
-        micStream.getTracks().forEach(track => track.stop());
         document.getElementById('startBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
         document.getElementById('status').innerText = "DONE";
@@ -121,11 +137,11 @@
                     mode: 'no-cors',
                     body: JSON.stringify({
                         audio: reader.result.split(',')[1],
-                        name: document.getElementById('studentName').value + "_G8_Shadowing"
+                        name: document.getElementById('studentName').value + "_G8_MIXED"
                     })
                 });
                 document.getElementById('status').innerText = "SENT SUCCESS!";
-                alert("Shadowing Sent!");
+                alert("Upload Success!");
             } catch (e) { alert("Upload Fail"); }
         };
     };
